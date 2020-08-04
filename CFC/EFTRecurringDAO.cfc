@@ -2,7 +2,7 @@
 	EFTRecurringDAO.cfc
 
 	* $Revision: $
-	* $Date: 7/13/2020 $
+	* $Date: 7/16/2020 $
 ---------------------------------------------------------------------------------------------->
 
 <cfcomponent displayname="EFTRecurringDAO" output="false">
@@ -35,7 +35,7 @@
 <!--------------------------------------------------------------------------------------------
 	GetEFTRecurringName - Get the name from  EFTRecurring by EFTRecurringID
 	Modifications:
-		7/13/2020 $ - created
+		7/16/2020 $ - created
 ---------------------------------------------------------------------------------------------->
 	<cffunction Name="GetEFTRecurringName" Access="Public" Output="FALSE" returnType="String" DisplayName="GetEFTRecurringName">
 		<cfargument Name="EFTRecurringID"		 Type="Numeric"		Required="Yes"		Hint="EFTRecurringID" >
@@ -101,7 +101,11 @@
 				tblEFTRecurring.fRunNext,
 				tblEFTRecurring.fTestMode,
 				tblEFTRecurring.GLBankAccountID,
+				tblEFTRecurring.AccountID,
+				tblEFTRecurring.ClubID,
 				tblEFTRecurring.UserID,
+				tblEFTRecurring.ContributionType,
+				tblEFTRecurring.ConvMethod,
 				tblEFTRecurring.TranType,
 				tblEFTRecurring.AccountType,
 				tblEFTRecurring.Amount,
@@ -156,19 +160,21 @@
 
 		<cfset var qView = "" />
 		<cfquery name="qView" datasource="#VARIABLES.dsn#">
-SELECT        dbo.tblEFTRecurring.EFTRecurringID, dbo.tblEFTRecurring.GLBankAccountID, dbo.tblEFTRecurring.UserID, dbo.tblEFTRecurring.TranType, dbo.tblEFTRecurring.AccountType, dbo.tblEFTRecurring.NameOnAccount,
+SELECT        dbo.tblEFTRecurring.EFTRecurringID, dbo.tblEFTRecurring.GLBankAccountID, dbo.tblEFTRecurring.UserID, dbo.tblEFTRecurring.fRunNext,dbo.tblEFTRecurring.fTestMode,dbo.tblEFTRecurring.TranType, dbo.tblEFTRecurring.AccountType, dbo.tblEFTRecurring.NameOnAccount,
+			tblEFTRecurring.ContributionType, tblEFTRecurring.AccountID, 	tblEFTRecurring.ClubID, tblEFTRecurring.ConvMethod,
                          dbo.tblEFTRecurring.Amount, dbo.tblEFTRecurring.Period, dbo.tblEFTRecurring.StartDate, dbo.tblEFTRecurring.EndDate, dbo.tblEFTRecurring.Token, dbo.tblEFTRecurring.Notes, dbo.tblEFTRecurring.Created_Tmstmp,
                          dbo.tblEFTRecurring.Modified_Tmstmp, dbo.tblUser.dFlag AS Fterm, dbo.tblUser.UserName, dbo.tblUser.AccountID, dbo.tblUser.ClubID, dbo.GLBankAccount.GatewayParms, dbo.GLBankAccount.IsHandleFee,
                          dbo.GLBankAccount.HandleFeeFixed, dbo.GLBankAccount.HandlefeePcnt, dbo.GLBankAccount.PymtGateway, dbo.GLBankAccount.Notifications, dbo.GLBankAccount.GLBankAccountName,
-                         dbo.GLBankAccount.AccountID AS GLBankAccount, dbo.tblUser.Email, dbo.tblUser.FName
+                         dbo.GLBankAccount.AccountID AS GLBankAccount, dbo.tblUser.Email, dbo.tblUser.FName, tblEFTRecurring.hmJSON
 FROM            dbo.tblEFTRecurring INNER JOIN
                          dbo.tblUser ON dbo.tblEFTRecurring.UserID = dbo.tblUser.UserID INNER JOIN
                          dbo.GLBankAccount ON dbo.tblEFTRecurring.GLBankAccountID = dbo.GLBankAccount.GLBankAccountID
 
 			WHERE 	1 = 1
-			AND		dbo.tblEFTRecurring.dFlag 	= 'N'
-			AND		dbo.tblUser.dFlag 			= 'N'
-			AND		dbo.GLBankAccount.dFlag 	= 'N'
+			<cfif ARGUMENTS.Override EQ "N">
+				AND		dbo.tblUser.dFlag 			= 'N'
+				AND	 	dbo.tblEFTRecurring.dFlag 	= 'N'
+			</cfif>
 			<cfif ARGUMENTS.GLBankAccountID GT 0>
 				AND		tblEFTRecurring.GLBankAccountID = <CFQUERYPARAM Value="#ARGUMENTS.GLBankAccountID#"	CFSQLTYPE="CF_SQL_INTEGER">
 			</cfif>
@@ -190,12 +196,14 @@ FROM            dbo.tblEFTRecurring INNER JOIN
 ---------------------------------------------------------------------------------------------------------------------->
 	<cffunction name="List" access="public" output="false" returntype="Query" DisplayName="List">
 		<cfargument name="GLBankAccountID"		Type="numeric"	Required="No"	Hint="GLBankAccountID"		Default="0" />
+		<cfargument Name="Override"				Type="String"	Required="No"	Hint="Override"				Default="N">
 		<cfargument Name="Filter"				Type="string"	Required="No"	Hint="Filter Value"			Default="">
 		<cfargument Name="SortBy"				Type="String"	Required="No"	Hint="SortBy"				Default="UserName">
 
 		<cfset var qList = "" />
 		<cfquery name="qList" datasource="#VARIABLES.dsn#">
-SELECT	dbo.tblEFTRecurring.EFTRecurringID, dbo.tblEFTRecurring.GLBankAccountID, dbo.tblEFTRecurring.UserID, dbo.tblEFTRecurring.dFlag, dbo.tblEFTRecurring.fRunNext,dbo.tblEFTRecurring.fTestMode,dbo.tblEFTRecurring.TranType, dbo.tblEFTRecurring.AccountType, dbo.tblEFTRecurring.NameOnAccount, dbo.tblEFTRecurring.Amount,
+SELECT	dbo.tblEFTRecurring.EFTRecurringID, dbo.tblEFTRecurring.GLBankAccountID, dbo.tblEFTRecurring.UserID, tblEFTRecurring.ContributionType, dbo.tblEFTRecurring.dFlag, dbo.tblEFTRecurring.fRunNext,dbo.tblEFTRecurring.fTestMode,dbo.tblEFTRecurring.TranType, dbo.tblEFTRecurring.AccountType, dbo.tblEFTRecurring.NameOnAccount, dbo.tblEFTRecurring.Amount,
+		tblEFTRecurring.AccountID, 	tblEFTRecurring.ClubID, tblEFTRecurring.ConvMethod,
 		dbo.tblEFTRecurring.Period, dbo.tblEFTRecurring.StartDate, dbo.tblEFTRecurring.EndDate, dbo.tblEFTRecurring.Token, dbo.tblEFTRecurring.Notes, tblUser_1.UserName AS Created_By, dbo.tblEFTRecurring.Created_Tmstmp,
 		tblUser_2.UserName AS Modified_By, dbo.tblEFTRecurring.Modified_Tmstmp, dbo.tblUser.UserName, dbo.tblUser.dFlag as fTERM,
 		Derived.Created_tmstmp as LastPymtDate,
@@ -216,6 +224,10 @@ LEFT OUTER JOIN	dbo.tblUser AS tblUser_2 ON dbo.tblEFTRecurring.Modified_By = tb
 
 			WHERE 		1 = 1
 			AND			tblEFTRecurring.GLBankAccountID	= <CFQUERYPARAM Value="#ARGUMENTS.GLBankAccountID#"		CFSQLTYPE="CF_SQL_INTEGER">
+			<cfif ARGUMENTS.Override EQ "N">
+				AND		dbo.tblUser.dFlag 			= 'N'
+				AND	 	dbo.tblEFTRecurring.dFlag 	= 'N'
+			</cfif>
 			<cfif Len(ARGUMENTS.Filter) GT 0>
 				AND 	dbo.tblUser.UserName 			LIKE <cfqueryparam value="#ARGUMENTS.Filter#%">
 			</cfif>
@@ -245,7 +257,11 @@ LEFT OUTER JOIN	dbo.tblUser AS tblUser_2 ON dbo.tblEFTRecurring.Modified_By = tb
 				tblEFTRecurring.fRunNext,
 				tblEFTRecurring.fTestMode,
 				tblEFTRecurring.GLBankAccountID,
+				tblEFTRecurring.AccountID,
+				tblEFTRecurring.ClubID,
 				tblEFTRecurring.UserID,
+				tblEFTRecurring.ContributionType,
+				tblEFTRecurring.ConvMethod,
 				tblEFTRecurring.TranType,
 				tblEFTRecurring.AccountType,
 				tblEFTRecurring.Amount,
@@ -301,6 +317,7 @@ LEFT OUTER JOIN	dbo.tblUser AS tblUser_2 ON dbo.tblEFTRecurring.Modified_By = tb
 			SELECT	count(1) as idexists
 			FROM	tblEFTRecurring
 			WHERE	1 = 1
+			AND	 	dbo.tblEFTRecurring.dFlag 	= 'N'
 			<cfif ARGUMENTS.EFTRecurring.getEFTRecurringID() GT 0>
 				AND		tblEFTRecurring.EFTRecurringID = <cfqueryparam value="#ARGUMENTS.EFTRecurring.getEFTRecurringID()#"		CFSQLType="cf_sql_integer" />
 			<cfelse>
@@ -344,24 +361,28 @@ LEFT OUTER JOIN	dbo.tblUser AS tblUser_2 ON dbo.tblEFTRecurring.Modified_By = tb
 
 	<cfinvoke component="#APPLICATION.DIR#cfc\EFTRecurringDAO" method="InsertRec" returnvariable="EFTRecurringID">
 		<cfinvokeargument name="NameOnAccount"		Value="#FORM.NameOnAccount#">
-		<cfinvokeargument name="dFlag"		Value="#FORM.dFlag#">
-		<cfinvokeargument name="fRunNext"		Value="#FORM.fRunNext#">
-		<cfinvokeargument name="fTestMode"		Value="#FORM.fTestMode#">
-		<cfinvokeargument name="GLBankAccountID"		Value="#FORM.GLBankAccountID#">
-		<cfinvokeargument name="UserID"		Value="#FORM.UserID#">
-		<cfinvokeargument name="TranType"		Value="#FORM.TranType#">
+		<cfinvokeargument name="dFlag"				Value="#FORM.dFlag#">
+		<cfinvokeargument name="fRunNext"			Value="#FORM.fRunNext#">
+		<cfinvokeargument name="fTestMode"			Value="#FORM.fTestMode#">
+		<cfinvokeargument name="GLBankAccountID"	Value="#FORM.GLBankAccountID#">
+		<cfinvokeargument name="AccountID"			Value="#FORM.AccountID#">
+		<cfinvokeargument name="ClubID"				Value="#FORM.ClubID#">
+		<cfinvokeargument name="UserID"				Value="#FORM.UserID#">
+		<cfinvokeargument name="ContributionType"	Value="#FORM.ContributionType#">
+		<cfinvokeargument name="ConvMethod"			Value="#FORM.ConvMethod#">
+		<cfinvokeargument name="TranType"			Value="#FORM.TranType#">
 		<cfinvokeargument name="AccountType"		Value="#FORM.AccountType#">
-		<cfinvokeargument name="Amount"		Value="#FORM.Amount#">
-		<cfinvokeargument name="Period"		Value="#FORM.Period#">
-		<cfinvokeargument name="StartDate"		Value="#FORM.StartDate#">
-		<cfinvokeargument name="EndDate"		Value="#FORM.EndDate#">
-		<cfinvokeargument name="CardNumber"		Value="#FORM.CardNumber#">
-		<cfinvokeargument name="CardExpiryMonth"		Value="#FORM.CardExpiryMonth#">
+		<cfinvokeargument name="Amount"				Value="#FORM.Amount#">
+		<cfinvokeargument name="Period"				Value="#FORM.Period#">
+		<cfinvokeargument name="StartDate"			Value="#FORM.StartDate#">
+		<cfinvokeargument name="EndDate"			Value="#FORM.EndDate#">
+		<cfinvokeargument name="CardNumber"			Value="#FORM.CardNumber#">
+		<cfinvokeargument name="CardExpiryMonth"	Value="#FORM.CardExpiryMonth#">
 		<cfinvokeargument name="CardExpiryYear"		Value="#FORM.CardExpiryYear#">
-		<cfinvokeargument name="Token"		Value="#FORM.Token#">
-		<cfinvokeargument name="Notes"		Value="#FORM.Notes#">
-		<cfinvokeargument name="hmJSON"		Value="#FORM.hmJSON#">
-		<cfinvokeargument name="AuthCode"		Value="#FORM.AuthCode#">
+		<cfinvokeargument name="Token"				Value="#FORM.Token#">
+		<cfinvokeargument name="Notes"				Value="#FORM.Notes#">
+		<cfinvokeargument name="hmJSON"				Value="#FORM.hmJSON#">
+		<cfinvokeargument name="AuthCode"			Value="#FORM.AuthCode#">
 		<cfinvokeargument name="ResponseText"		Value="#FORM.ResponseText#">
 		<cfinvokeargument name="TransactionID"		Value="#FORM.TransactionID#">
 	</cfinvoke>
@@ -372,7 +393,11 @@ LEFT OUTER JOIN	dbo.tblUser AS tblUser_2 ON dbo.tblEFTRecurring.Modified_By = tb
 		<!--- <cfargument name="fRunNext"					Type="string"		Required="No"		Default="N" /> --->
 		<!--- <cfargument name="fTestMode"				Type="string"		Required="No"		Default="N" /> --->
 		<cfargument name="GLBankAccountID"			Type="numeric"		Required="No"		Default="0" />
+		<cfargument name="AccountID"				Type="numeric"		Required="No"		Default="#SESSION.AccountID#" />
+		<cfargument name="ClubID"					Type="numeric"		Required="No"		Default="#SESSION.ClubID#" />
 		<cfargument name="UserID"					Type="numeric"		Required="No"		Default="0" />
+		<cfargument name="ContributionType"			Type="string"		Required="No"		Default="C" />
+		<cfargument name="ConvMethod"				Type="string"		Required="No"		Default="A" />
 		<cfargument name="TranType"					Type="string"		Required="No"		Default="" />
 		<cfargument name="AccountType"				Type="string"		Required="Yes"		Default="" />
 		<cfargument name="Amount"					Type="numeric"		Required="No"		Default="0.00" />
@@ -402,7 +427,11 @@ LEFT OUTER JOIN	dbo.tblUser AS tblUser_2 ON dbo.tblEFTRecurring.Modified_By = tb
 					<!--- tblEFTRecurring.fRunNext, --->
 					<!--- tblEFTRecurring.fTestMode, --->
 					tblEFTRecurring.GLBankAccountID,
+					tblEFTRecurring.AccountID,
+					tblEFTRecurring.ClubID,
 					tblEFTRecurring.UserID,
+					tblEFTRecurring.ContributionType,
+					tblEFTRecurring.ConvMethod,
 					tblEFTRecurring.TranType,
 					tblEFTRecurring.AccountType,
 					tblEFTRecurring.Amount,
@@ -428,7 +457,11 @@ LEFT OUTER JOIN	dbo.tblUser AS tblUser_2 ON dbo.tblEFTRecurring.Modified_By = tb
 					<!--- <cfqueryparam value="#Left(ARGUMENTS.fRunNext,1)#"				CFSQLType="CF_SQL_CHAR" 	null="#not len(ARGUMENTS.fRunNext)#" />, --->
 					<!--- <cfqueryparam value="#Left(ARGUMENTS.fTestMode,1)#"				CFSQLType="CF_SQL_CHAR" 	null="#not len(ARGUMENTS.fTestMode)#" />, --->
 					<cfqueryparam value="#ARGUMENTS.GLBankAccountID#"				CFSQLType="CF_SQL_INTEGER" />,
+					<cfqueryparam value="#ARGUMENTS.AccountID#"						CFSQLType="CF_SQL_INTEGER" />,
+					<cfqueryparam value="#ARGUMENTS.ClubID#"						CFSQLType="CF_SQL_INTEGER" />,
 					<cfqueryparam value="#ARGUMENTS.UserID#"						CFSQLType="CF_SQL_INTEGER" />,
+					<cfqueryparam value="#Left(ARGUMENTS.ContributionType,1)#"		CFSQLType="CF_SQL_CHAR" 			null="#not len(ARGUMENTS.ContributionType)#" />,
+					<cfqueryparam value="#Left(ARGUMENTS.ConvMethod,1)#"			CFSQLType="CF_SQL_CHAR" 			null="#not len(ARGUMENTS.ConvMethod)#" />,
 					<cfqueryparam value="#Left(ARGUMENTS.TranType,2)#"				CFSQLType="CF_SQL_CHAR" 	null="#not len(ARGUMENTS.TranType)#" />,
 					<cfqueryparam value="#Left(ARGUMENTS.AccountType,16)#"			CFSQLType="CF_SQL_VARCHAR" 	null="#not len(ARGUMENTS.AccountType)#" />,
 					<cfqueryparam value="#ARGUMENTS.Amount#"						CFSQLType="CF_SQL_MONEY" />,
@@ -481,7 +514,11 @@ LEFT OUTER JOIN	dbo.tblUser AS tblUser_2 ON dbo.tblEFTRecurring.Modified_By = tb
 					<!--- tblEFTRecurring.fRunNext, --->
 					<!--- tblEFTRecurring.fTestMode, --->
 					tblEFTRecurring.GLBankAccountID,
+					tblEFTRecurring.AccountID,
+					tblEFTRecurring.ClubID,
 					tblEFTRecurring.UserID,
+					tblEFTRecurring.ContributionType,
+					tblEFTRecurring.ConvMethod,
 					tblEFTRecurring.TranType,
 					tblEFTRecurring.AccountType,
 					tblEFTRecurring.Amount,
@@ -507,7 +544,11 @@ LEFT OUTER JOIN	dbo.tblUser AS tblUser_2 ON dbo.tblEFTRecurring.Modified_By = tb
 					<!--- <cfqueryparam value="#Left(ARGUMENTS.EFTRecurring.getfRunNext(),1)#"			CFSQLType="CF_SQL_CHAR"		null="#not len(ARGUMENTS.EFTRecurring.getfRunNext())#" />, --->
 					<!--- <cfqueryparam value="#Left(ARGUMENTS.EFTRecurring.getfTestMode(),1)#"			CFSQLType="CF_SQL_CHAR"		null="#not len(ARGUMENTS.EFTRecurring.getfTestMode())#" />, --->
 					<cfqueryparam value="#ARGUMENTS.EFTRecurring.getGLBankAccountID()#"				CFSQLType="CF_SQL_INTEGER" />,
+					<cfqueryparam value="#ARGUMENTS.EFTRecurring.getAccountID()#"					CFSQLType="CF_SQL_INTEGER" />,
+					<cfqueryparam value="#ARGUMENTS.EFTRecurring.getClubID()#"						CFSQLType="CF_SQL_INTEGER" />,
 					<cfqueryparam value="#ARGUMENTS.EFTRecurring.getUserID()#"						CFSQLType="CF_SQL_INTEGER" />,
+					<cfqueryparam value="#Left(ARGUMENTS.EFTRecurring.getContributionType(),1)#"	CFSQLType="CF_SQL_CHAR"		null="#not len(ARGUMENTS.EFTRecurring.getContributionType())#" />,
+					<cfqueryparam value="#Left(ARGUMENTS.EFTRecurring.getConvMethod(),1)#"			CFSQLType="CF_SQL_CHAR"		null="#not len(ARGUMENTS.EFTRecurring.getConvMethod())#" />,
 					<cfqueryparam value="#Left(ARGUMENTS.EFTRecurring.getTranType(),2)#"			CFSQLType="CF_SQL_CHAR"		null="#not len(ARGUMENTS.EFTRecurring.getTranType())#" />,
 					<cfqueryparam value="#Left(ARGUMENTS.EFTRecurring.getAccountType(),16)#"		CFSQLType="CF_SQL_VARCHAR"		null="#not len(ARGUMENTS.EFTRecurring.getAccountType())#" />,
 					<cfqueryparam value="#ARGUMENTS.EFTRecurring.getAmount()#"						CFSQLType="CF_SQL_MONEY" />,
@@ -556,10 +597,14 @@ LEFT OUTER JOIN	dbo.tblUser AS tblUser_2 ON dbo.tblEFTRecurring.Modified_By = tb
 				SET
 					NameOnAccount			= <cfqueryparam value="#Left(ARGUMENTS.EFTRecurring.getNameOnAccount(),50)#"		CFSQLType="CF_SQL_VARCHAR" 		null="#not len(ARGUMENTS.EFTRecurring.getNameOnAccount())#" />,
 					dFlag					= <cfqueryparam value="#Left(ARGUMENTS.EFTRecurring.getdFlag(),1)#"					CFSQLType="CF_SQL_CHAR" 		null="#not len(ARGUMENTS.EFTRecurring.getdFlag())#" />,
-					fRunNext				= <cfqueryparam value="#Left(ARGUMENTS.EFTRecurring.getfRunNext(),1)#"				CFSQLType="CF_SQL_CHAR" 		null="#not len(ARGUMENTS.EFTRecurring.getfRunNext())#" />,
-					fTestMode				= <cfqueryparam value="#Left(ARGUMENTS.EFTRecurring.getfTestMode(),1)#"				CFSQLType="CF_SQL_CHAR" 		null="#not len(ARGUMENTS.EFTRecurring.getfTestMode())#" />,
+					<!--- fRunNext				= <cfqueryparam value="#Left(ARGUMENTS.EFTRecurring.getfRunNext(),1)#"				CFSQLType="CF_SQL_CHAR" 		null="#not len(ARGUMENTS.EFTRecurring.getfRunNext())#" />, --->
+					<!--- fTestMode				= <cfqueryparam value="#Left(ARGUMENTS.EFTRecurring.getfTestMode(),1)#"				CFSQLType="CF_SQL_CHAR" 		null="#not len(ARGUMENTS.EFTRecurring.getfTestMode())#" />, --->
 					GLBankAccountID			= <cfqueryparam value="#ARGUMENTS.EFTRecurring.getGLBankAccountID()#"				CFSQLType="CF_SQL_INTEGER" />,
+					AccountID				= <cfqueryparam value="#ARGUMENTS.EFTRecurring.getAccountID()#"						CFSQLType="CF_SQL_INTEGER" />,
+					ClubID					= <cfqueryparam value="#ARGUMENTS.EFTRecurring.getClubID()#"						CFSQLType="CF_SQL_INTEGER" />,
 					UserID					= <cfqueryparam value="#ARGUMENTS.EFTRecurring.getUserID()#"						CFSQLType="CF_SQL_INTEGER" />,
+					ContributionType		= <cfqueryparam value="#Left(ARGUMENTS.EFTRecurring.getContributionType(),1)#"		CFSQLType="CF_SQL_CHAR" 			null="#not len(ARGUMENTS.EFTRecurring.getContributionType())#" />,
+					ConvMethod				= <cfqueryparam value="#Left(ARGUMENTS.EFTRecurring.getConvMethod(),1)#"			CFSQLType="CF_SQL_CHAR" 			null="#not len(ARGUMENTS.EFTRecurring.getConvMethod())#" />,
 					TranType				= <cfqueryparam value="#Left(ARGUMENTS.EFTRecurring.getTranType(),2)#"				CFSQLType="CF_SQL_CHAR" 		null="#not len(ARGUMENTS.EFTRecurring.getTranType())#" />,
 					AccountType				= <cfqueryparam value="#Left(ARGUMENTS.EFTRecurring.getAccountType(),16)#"			CFSQLType="CF_SQL_VARCHAR" 		null="#not len(ARGUMENTS.EFTRecurring.getAccountType())#" />,
 					Amount					= <cfqueryparam value="#ARGUMENTS.EFTRecurring.getAmount()#"						CFSQLType="CF_SQL_MONEY" />,

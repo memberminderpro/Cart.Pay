@@ -2,7 +2,7 @@
 	EFTRecurring.cfc
 
 	* $Revision: $
-	* $Date: 7/13/2020 $
+	* $Date: 7/16/2020 $
 ---------------------------------------------------------------------------------------------->
 
 <cfcomponent displayname="EFTRecurring" output="false">
@@ -13,13 +13,17 @@
 	<cfproperty name="fRunNext"					Type="string"	default="" />
 	<cfproperty name="fTestMode"				Type="string"	default="" />
 	<cfproperty name="GLBankAccountID"			Type="numeric"	default="" />
+	<cfproperty name="AccountID"				Type="numeric"	default="" />
+	<cfproperty name="ClubID"					Type="numeric"	default="" />
 	<cfproperty name="UserID"					Type="numeric"	default="" />
+	<cfproperty name="ContributionType"			Type="string"	default="" />
+	<cfproperty name="ConvMethod"				Type="string"	default="" />
 	<cfproperty name="TranType"					Type="string"	default="" />
 	<cfproperty name="AccountType"				Type="string"	default="" />
 	<cfproperty name="Amount"					Type="numeric"	default="" />
 	<cfproperty name="Period"					Type="numeric"	default="" />
-	<cfproperty name="StartDate"				Type="date"	default="" />
-	<cfproperty name="EndDate"					Type="date"	default="" />
+	<cfproperty name="StartDate"				Type="date"		default="" />
+	<cfproperty name="EndDate"					Type="date"		default="" />
 	<cfproperty name="CardNumber"				Type="string"	default="" />
 	<cfproperty name="CardExpiryMonth"			Type="numeric"	default="" />
 	<cfproperty name="CardExpiryYear"			Type="numeric"	default="" />
@@ -50,7 +54,11 @@
 		<cfargument name="fRunNext"						Type="string"	required="false"	default="N"	/>
 		<cfargument name="fTestMode"					Type="string"	required="false"	default="N"	/>
 		<cfargument name="GLBankAccountID"				Type="numeric"	required="false"	default="0"	/>
+		<cfargument name="AccountID"					Type="numeric"	required="false"	default="#SESSION.AccountID#"	/>
+		<cfargument name="ClubID"						Type="numeric"	required="false"	default="#SESSION.ClubID#"	/>
 		<cfargument name="UserID"						Type="numeric"	required="false"	default="0"	/>
+		<cfargument name="ContributionType"				Type="string"	required="false"	default="C"	/>
+		<cfargument name="ConvMethod"					Type="string"	required="false"	default="A"	/>
 		<cfargument name="TranType"						Type="string"	required="false"	default="EC"	/>
 		<cfargument name="AccountType"					Type="string"	required="false"	default=""	/>
 		<cfargument name="Amount"						Type="numeric"	required="false"	default="0.00"	/>
@@ -62,7 +70,7 @@
 		<cfargument name="CardExpiryYear"				Type="numeric"	required="false"	default="0"	/>
 		<cfargument name="Token"						Type="string"	required="false"	default=""	/>
 		<cfargument name="Notes"						Type="string"	required="false"	default=""	/>
-		<cfargument name="hmJSON"						Type="string"	required="false"	default=""	/>
+		<cfargument name="hmJSON"						Type="string"	required="false"	default='{"HMADDRESS":"","HM":"","HMNAME":""}'	/>
 		<cfargument name="AuthCode"						Type="string"	required="false"	default=""	/>
 		<cfargument name="ResponseText"					Type="string"	required="false"	default=""	/>
 		<cfargument name="TransactionID"				Type="string"	required="false"	default=""	/>
@@ -70,7 +78,7 @@
 		<cfargument name="Created_Tmstmp"				Type="string"	required="false"	default="#now()#"	/>
 		<cfargument name="Modified_By"					Type="string"	required="false"	default="#SESSION.UserID#"	/>
 		<cfargument name="Modified_Tmstmp"				Type="string"	required="false"	default="#now()#"	/>
-	
+
 		<!--- run setters --->
 		<cfset setEFTRecurringID(ARGUMENTS.EFTRecurringID) />
 		<cfset setNameOnAccount(ARGUMENTS.NameOnAccount) />
@@ -78,7 +86,11 @@
 		<cfset setfRunNext(ARGUMENTS.fRunNext) />
 		<cfset setfTestMode(ARGUMENTS.fTestMode) />
 		<cfset setGLBankAccountID(ARGUMENTS.GLBankAccountID) />
+		<cfset setAccountID(ARGUMENTS.AccountID) />
+		<cfset setClubID(ARGUMENTS.ClubID) />
 		<cfset setUserID(ARGUMENTS.UserID) />
+		<cfset setContributionType(ARGUMENTS.ContributionType) />
+		<cfset setConvMethod(ARGUMENTS.ConvMethod) />
 		<cfset setTranType(ARGUMENTS.TranType) />
 		<cfset setAccountType(ARGUMENTS.AccountType) />
 		<cfset setAmount(ARGUMENTS.Amount) />
@@ -197,11 +209,55 @@
 			<cfset arrayAppend(errors,duplicate(thisError)) />
 		</cfif>
 
+		<!--- AccountID --->
+		<cfif len(trim( getAccountID() )) AND NOT isNumeric(trim( getAccountID() ))>
+			<cfset thisError.field = "AccountID" />
+			<cfset thisError.type = "invalidType" />
+			<cfset thisError.message = "AccountID is not a number" />
+			<cfset arrayAppend(errors,duplicate(thisError)) />
+		</cfif>
+
+		<!--- ClubID --->
+		<cfif len(trim( getClubID() )) AND NOT isNumeric(trim( getClubID() ))>
+			<cfset thisError.field = "ClubID" />
+			<cfset thisError.type = "invalidType" />
+			<cfset thisError.message = "ClubID is not a number" />
+			<cfset arrayAppend(errors,duplicate(thisError)) />
+		</cfif>
+
 		<!--- UserID --->
 		<cfif len(trim( getUserID() )) AND NOT isNumeric(trim( getUserID() ))>
 			<cfset thisError.field = "UserID" />
 			<cfset thisError.type = "invalidType" />
 			<cfset thisError.message = "UserID is not a number" />
+			<cfset arrayAppend(errors,duplicate(thisError)) />
+		</cfif>
+
+		<!--- ContributionType --->
+		<cfif len(trim( getContributionType() )) AND NOT IsSimpleValue(trim( getContributionType() ))>
+			<cfset thisError.field = "ContributionType" />
+			<cfset thisError.type = "invalidType" />
+			<cfset thisError.message = "ContributionType is not a string" />
+			<cfset arrayAppend(errors,duplicate(thisError)) />
+		</cfif>
+		<cfif len(trim( getContributionType() )) GT 1>
+			<cfset thisError.field = "ContributionType" />
+			<cfset thisError.type = "too Long" />
+			<cfset thisError.message = "ContributionType is too long" />
+			<cfset arrayAppend(errors,duplicate(thisError)) />
+		</cfif>
+
+		<!--- ConvMethod --->
+		<cfif len(trim( getConvMethod() )) AND NOT IsSimpleValue(trim( getConvMethod() ))>
+			<cfset thisError.field = "ConvMethod" />
+			<cfset thisError.type = "invalidType" />
+			<cfset thisError.message = "ConvMethod is not a string" />
+			<cfset arrayAppend(errors,duplicate(thisError)) />
+		</cfif>
+		<cfif len(trim( getConvMethod() )) GT 1>
+			<cfset thisError.field = "ConvMethod" />
+			<cfset thisError.type = "too Long" />
+			<cfset thisError.message = "ConvMethod is too long" />
 			<cfset arrayAppend(errors,duplicate(thisError)) />
 		</cfif>
 
@@ -443,6 +499,32 @@
 
 
 	<!--- -------------------------------------------------------------------------------------------------
+	AccountID -- Get/Set
+	--------------------------------------------------------------------------------------------------- --->
+	<cffunction name="setAccountID" access="public" returntype="void" output="false">
+		<cfargument name="AccountID" type="string" required="true" />
+			<cfset variables.instance.AccountID = ARGUMENTS.AccountID />
+	</cffunction>
+
+	<cffunction name="getAccountID" access="public" returntype="string" output="false">
+		<cfreturn variables.instance.AccountID />
+	</cffunction>
+
+
+	<!--- -------------------------------------------------------------------------------------------------
+	ClubID -- Get/Set
+	--------------------------------------------------------------------------------------------------- --->
+	<cffunction name="setClubID" access="public" returntype="void" output="false">
+		<cfargument name="ClubID" type="string" required="true" />
+			<cfset variables.instance.ClubID = ARGUMENTS.ClubID />
+	</cffunction>
+
+	<cffunction name="getClubID" access="public" returntype="string" output="false">
+		<cfreturn variables.instance.ClubID />
+	</cffunction>
+
+
+	<!--- -------------------------------------------------------------------------------------------------
 	UserID -- Get/Set
 	--------------------------------------------------------------------------------------------------- --->
 	<cffunction name="setUserID" access="public" returntype="void" output="false">
@@ -452,6 +534,32 @@
 
 	<cffunction name="getUserID" access="public" returntype="string" output="false">
 		<cfreturn variables.instance.UserID />
+	</cffunction>
+
+
+	<!--- -------------------------------------------------------------------------------------------------
+	ContributionType -- Get/Set
+	--------------------------------------------------------------------------------------------------- --->
+	<cffunction name="setContributionType" access="public" returntype="void" output="false">
+		<cfargument name="ContributionType" type="string" required="true" />
+			<cfset variables.instance.ContributionType = ARGUMENTS.ContributionType />
+	</cffunction>
+
+	<cffunction name="getContributionType" access="public" returntype="string" output="false">
+		<cfreturn variables.instance.ContributionType />
+	</cffunction>
+
+
+	<!--- -------------------------------------------------------------------------------------------------
+	ConvMethod -- Get/Set
+	--------------------------------------------------------------------------------------------------- --->
+	<cffunction name="setConvMethod" access="public" returntype="void" output="false">
+		<cfargument name="ConvMethod" type="string" required="true" />
+			<cfset variables.instance.ConvMethod = ARGUMENTS.ConvMethod />
+	</cffunction>
+
+	<cffunction name="getConvMethod" access="public" returntype="string" output="false">
+		<cfreturn variables.instance.ConvMethod />
 	</cffunction>
 
 
