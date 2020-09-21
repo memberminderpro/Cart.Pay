@@ -9,22 +9,23 @@
 
 <cftry>
 	<cfparam name="FORM.PaymentType"			default="CC"				type="string">
-	<cfparam name="FORM.Amount"					default="0.00"				type="numeric">
+	<cfparam name="FORM.Amount"					default="1.00"				type="numeric">
 	<cfparam name="FORM.Notes"					default=""					type="string">
-	<cfparam name="FORM.UDField1"				default="0"					type="string">		<!--- EFTTransactionID Passed Back--->
+	<cfparam name="FORM.UDField1"				default="2026"					type="string">		<!--- EFTTransactionID Passed Back--->
 
 	<cfparam name="FORM.CardHolderName"			default="missing"			type="string">
-	<cfparam name="FORM.CardNumber"				default=""					type="string">		<!--- 12XXXXXXXXXX3456 is returned -- we want last 4 --->
-	<cfparam name="FORM.CardExpiryMonth"		default="0"					type="string">
-	<cfparam name="FORM.CardExpiryYear"			default="0"					type="string">
+	<cfparam name="FORM.CardNumber"				default="47XXXXXXXXXX4009"					type="string">		<!--- 12XXXXXXXXXX3456 is returned -- we want last 4 --->
+	<cfparam name="FORM.CardExpiryMonth"		default="03"					type="string">
+	<cfparam name="FORM.CardExpiryYear"			default="22"					type="string">
 
-	<cfparam name="FORM.AuthCode"				default="missing"			type="string">
-	<cfparam name="FORM.CardToken"				default="missing"			type="string">
-	<cfparam name="FORM.ResponseText"			default="missing"			type="string">
+	<cfparam name="FORM.AuthCode"				default="TOKEN7246612"			type="string">
+	<cfparam name="FORM.CardToken"				default="4E6G2F6M7G5H4009"			type="string">
+	<cfparam name="FORM.ResponseCode"			default="000"				type="string">
+	<cfparam name="FORM.ResponseText"			default="TOKENIZED"			type="string">
 	<cfparam name="FORM.TransactionID"			default="1"					type="string">
 
 	<cfcatch>
-		<CF_XLogCart  AccountID="0" Table="EFTRecurring" type="I" Value="#FORM.UserID#"  Desc="CC Tokenize Failed">
+		<CF_XLogCart  AccountID="0" Table="EFTRecurring" type="I" Value="#URL.UserID#"  Desc="CC Tokenize Failed">
 	</cfcatch>
 </cftry>
 
@@ -63,7 +64,7 @@
 	Display Scheduled Transactions
 ----------------------------------------------------------------------------------------------->
 <cfinvoke component="\CFC\ReceiptDAO" method="Scheduled" returnvariable="ReceiptHTML">
-	<cfinvokeargument name="UserID"					Value="#SESSION.UserID#">
+	<cfinvokeargument name="UserID"					Value="#UserID#">
 	<cfinvokeargument name="TotalAmount"			Value="#EFTRecurring.Amount#">
 	<cfinvokeargument name="Period"					Value="#EFTRecurring.Period#">
 	<cfinvokeargument name="StartDate"				Value="#EFTRecurring.StartDate#">
