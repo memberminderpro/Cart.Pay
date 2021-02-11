@@ -883,7 +883,6 @@ FROM            dbo.tblContribution INNER JOIN
 ---------------------------------------------------------------------------------------------------------------------->
 	<cffunction name="UpdateByContributionID" access="public" output="true" returntype="numeric" DisplayName="Update Contribution">
 		<cfargument name="ContributionID"			Type="numeric"		Required="Yes" />
-		<cfargument name="Amount"					Type="numeric"		Required="Yes" 		Default="0" />
 		<cfargument name="TranAmt"					Type="numeric"		Required="Yes" 		Default="0" />
 		<cfargument name="TranNo"					Type="string"		Required="Yes" />
 		<cfargument name="Notes"					Type="string"		Required="Yes" />
@@ -895,7 +894,6 @@ FROM            dbo.tblContribution INNER JOIN
 			<cfquery name="qUpdate" datasource="#VARIABLES.dsn#">
 				UPDATE tblContribution
 				SET
-					<!--- Amount				= <cfqueryparam value="#ARGUMENTS.Amount#"					CFSQLType="CF_SQL_MONEY" />, Set before going to CC Company--->
 					TranAmt				= <cfqueryparam value="#ARGUMENTS.TranAmt#"					CFSQLType="CF_SQL_MONEY" />,
 					TranNo				= <cfqueryparam value="#Left(ARGUMENTS.TranNo,32)#"			CFSQLType="CF_SQL_VARCHAR"  />,
 					Notes				= <cfqueryparam value="#Left(ARGUMENTS.Notes,255)#"			CFSQLType="CF_SQL_VARCHAR"  />,
@@ -904,7 +902,7 @@ FROM            dbo.tblContribution INNER JOIN
 				WHERE	1 = 1
 				AND		ContributionID	= <cfqueryparam value="#ARGUMENTS.ContributionID#"			CFSQLType="cf_sql_integer" />
 			</cfquery>
-			<CF_XLogCart Table="Contribution" type="U" Value="#ARGUMENTS.ContributionID#" Desc="Contribution Updated, #DollarFormat(ARGUMENTS.Amount)#/#DollarFormat(ARGUMENTS.TranAMt)#, #Left(ARGUMENTS.TranNo,32)# #ARGUMENTS.Notes#">
+			<CF_XLogCart Table="Contribution" type="U" Value="#ARGUMENTS.ContributionID#" Desc="Contribution Updated, TranAmt=#DollarFormat(ARGUMENTS.TranAmt)#, #Left(ARGUMENTS.TranNo,32)# #ARGUMENTS.Notes#">
 			<cfcatch type="database">
 				<cfif ARGUMENTS.OnErrorContinue EQ "N">
 					<CF_XLogCart Table="Contribution" type="E" Value="0" Desc="Error updating Contribution (#cfcatch.detail#)" >

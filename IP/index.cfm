@@ -37,9 +37,10 @@
 <cfset Memo    			= "">
 <cfset errMsg			= "">
 
-<CF_XLogCart AccountID="0" Table="Pay" type="I" Value="#UserID#"  Desc="Success IP: ID=#ContributionID# TranAmt:#DecimalFormat(TranAmt)#">
+<CF_XLogCart AccountID="0" Table="Pay" type="I" Value="#ContributionID#"  Desc="Success IP: UserID=#UserID# TranAmt:#DecimalFormat(TranAmt)#">
 <cfif NOT IsNumeric(ContributionID)>
 	<!--- <cfdump var="#FORM#"> --->
+	<CF_XLogCart AccountID="0" Table="Pay" type="I" Value="#ContributionID#"  Desc="Contribution is not valid. #ResponseText#">
 	<cf_problem message="Sorry, the contribution is not valid. #ResponseText#  Please contact support.">
 </cfif>
 
@@ -91,6 +92,8 @@
 		<cfoutput>#ReceiptHTML#</cfoutput>
 
 	<cfelse>
+		<CF_XLogCart AccountID="0" Table="Pay" type="I" Value="#ContributionID#"  Desc="UserID=#UserID# Duplicate Payment Detected">
+
 		<!--------------------------------------------------------------------------------------------
 			Duplicate Payment == Display and Log the Information
 		----------------------------------------------------------------------------------------------->
@@ -108,6 +111,8 @@
 	</cfif>
 
 <cfelse>
+
+	<CF_XLogCart AccountID="0" Table="Pay" type="I" Value="#ContributionID#"  Desc="UserID=#UserID# Transaction was not valid">
 
 	<!--------------------------------------------------------------------------------------------
 		Update The Contribution

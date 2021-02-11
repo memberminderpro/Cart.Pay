@@ -16,8 +16,7 @@
 	<cfset This.clientManagement		= TRUE>							<!--- Turn on client management. --->
 	<cfset This.clientStorage			= "Cart">						<!--- Turn on client storage. --->
 	<cfset This.loginstorage			= "SESSION">
-	<cfset This.Sessiontimeout			= "#createtimespan(0,0,15,0)#">
-	<cfset This.applicationtimeout		= "#createtimespan(0,1,0,0)#">
+	<cfset This.Sessiontimeout			= "#createtimespan(0,0,5,0)#">
 	<cfset This.blockedExtForFileUpload = "php,js,cfm,cfc,cfml,cmd,jsp,exe">
 	<cfset This.sessioncookie.httponly	= TRUE>
 	<cfset This.scriptprotect			= "ALL">
