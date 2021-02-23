@@ -16,7 +16,8 @@
 	<cfset This.clientManagement		= TRUE>							<!--- Turn on client management. --->
 	<cfset This.clientStorage			= "Cart">						<!--- Turn on client storage. --->
 	<cfset This.loginstorage			= "SESSION">
-	<cfset This.Sessiontimeout			= "#createtimespan(0,0,5,0)#">
+	<cfset This.Sessiontimeout			= "#createtimespan(0,0,15,0)#">
+	<cfset This.applicationtimeout		= "#createtimespan(0,1,0,0)#">
 	<cfset This.blockedExtForFileUpload = "php,js,cfm,cfc,cfml,cmd,jsp,exe">
 	<cfset This.sessioncookie.httponly	= TRUE>
 	<cfset This.scriptprotect			= "ALL">
@@ -112,13 +113,15 @@
 			<cfset SESSION.ApplURL 		= "https://www.MyCartFund.org/">
 		</cfif>
 
-		<cfif ListContainsNoCase(QUERY_STRING, "CAST ") GT 0 OR
-			  ListContainsNoCase(QUERY_STRING, "DECLARE ") GT 0 OR
-			  ListContainsNoCase(QUERY_STRING, "SELECT ") GT 0 OR
-			  ListContainsNoCase(QUERY_STRING, "UNION ") GT 0 OR
-			  find("<",QUERY_STRING) OR find(">",QUERY_STRING) OR find("%3C",QUERY_STRING) OR find("%3E",QUERY_STRING) OR find("=-1%27",QUERY_STRING)>
-			  <cffile action="APPEND" file="D:\HackLog.html" output="#REMOTE_ADDR# #DateFormat(now(),'mm/dd/yyyy')# #TimeFormat(now(),'hh:mm:ss')# Mobile<BR>">
-			  <cfabort>
+		<cfif ListContainsNoCase(QUERY_STRING, "CAST") GT 0 OR
+			ListContainsNoCase(QUERY_STRING, "AND") GT 0 OR
+			ListContainsNoCase(QUERY_STRING, "DECLARE") GT 0 OR
+			ListContainsNoCase(QUERY_STRING, "CONCAT") GT 0 OR
+			ListContainsNoCase(QUERY_STRING, "SELECT") GT 0 OR
+			ListContainsNoCase(QUERY_STRING, "UNION") GT 0 OR
+			find("<",QUERY_STRING) OR find(">",QUERY_STRING) OR find("%3C",QUERY_STRING) OR find("%3E",QUERY_STRING) OR find("=-1%27",QUERY_STRING)>
+			<cffile action="APPEND" file="D:\HackLog.html" output="#REMOTE_ADDR# #DateFormat(now(),'mm/dd/yyyy')# #TimeFormat(now(),'hh:mm:ss')# Mobile<BR>">
+			<cfabort>
 		</cfif>
 	</cffunction>
 
