@@ -262,8 +262,8 @@ return string;
 	<cffunction name="Failure" access="public" returntype="string" output="true">
 		<cfargument NAME="GLBankAccountID" 		type="Numeric"	Required="Yes"		Default="#SESSION.GLBankAccountID#">
 		<cfargument NAME="ContributionID" 		type="String"	Required="Yes"		Default="0">		<!--- CART ContributionID --->
-		<cfargument NAME="UserID" 				type="Numeric"	Required="Yes">
-		<cfargument NAME="TotalAmount"	 		type="Numeric"	Required="Yes">
+		<cfargument NAME="UserID" 				type="Numeric"	Required="Yes"		Default="0">
+		<cfargument NAME="TotalAmount"	 		type="Numeric"	Required="Yes"		Default="0">
 
 		<cfargument NAME="ResponseCode" 		type="String"	Required="Yes"		Default="">
 		<cfargument NAME="ResponseText" 		type="String"	Required="Yes"		Default="">
@@ -278,20 +278,9 @@ return string;
 		<cfset TotalAmount   = REReplace(TotalAmount, "[^0-9\.]+", "", "ALL")>
 
 		<!--------------------------------------------------------------------------------------------
-			Find the Contribution
-		----------------------------------------------------------------------------------------------->
-		<cfinvoke component="\CFC\ContributionDAO" method="Lookup" ContributionID="#ContributionID#" returnvariable="ContributionQ">
-		<cfset CreatedBy= ContributionQ.Created_By>		<!--- Person entering donation --->
-		<cfset UserID	= ContributionQ.UserID>			<!--- if > 0 personal donation --->
-
-		<!--------------------------------------------------------------------------------------------
 			Find Member
 		----------------------------------------------------------------------------------------------->
-		<cfif UserID GT 0>
-			<cfinvoke component="\CFC\UserDAO" method="View" UserID="#UserID#"  returnvariable="MemberQ">
-		<cfelse>
-			<cfinvoke component="\CFC\UserDAO" method="View" UserID="#CreatedBy#"  returnvariable="MemberQ">
-		</cfif>
+		<cfinvoke component="\CFC\UserDAO" method="View" UserID="#UserID#"  returnvariable="MemberQ">
 		<CF_XLogCart  AccountID="0" Table="" type="U" Value="#ContributionID#"  Desc="Failure Receipt, Member=#MemberQ.UserName# (#UserID#), $=#DecimalFormat(TotalAmount)#">
 
 		<!--------------------------------------------------------------------------------------------
@@ -330,7 +319,7 @@ return string;
 			<div style="width: 700px; margin: auto;">
 				<div style="position:relative; top:40px; text-align:  left; font-family:Arial;">
 					<cfoutput>
-					<h3>There was a problem with your payment processing.</h3>
+					<h3>There was a problem with your request.</h3>
 					<P><span style="color: red">#ErrorText#</span></P>
 					<BR>
 					<table border="0" cellpadding="0" cellspacing="0"  width="600">

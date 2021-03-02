@@ -114,7 +114,6 @@
 		</cfif>
 
 		<cfif ListContainsNoCase(QUERY_STRING, "CAST") GT 0 OR
-			ListContainsNoCase(QUERY_STRING, "AND") GT 0 OR
 			ListContainsNoCase(QUERY_STRING, "DECLARE") GT 0 OR
 			ListContainsNoCase(QUERY_STRING, "CONCAT") GT 0 OR
 			ListContainsNoCase(QUERY_STRING, "SELECT") GT 0 OR

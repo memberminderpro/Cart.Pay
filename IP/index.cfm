@@ -25,8 +25,8 @@
 	<cfparam name="AuthCode" 			default="" 						type="string">
 	<cfparam name="PaymentType" 		default="CC" 					type="string">
 	<cfparam name="Valid" 				default="True" 					type="Boolean">
-	<cfparam name="UserID" 				default="0" 					type="numeric">		<!--- Passed on the URL --->
 	<cfparam name="UDField1" 			default=""						type="string">		<!--- ContributionID --->
+	<cfparam name="UDField2" 			default=""						type="string">		<!--- UserID --->
 	<cfcatch>contact support</cfcatch>
 </cftry>
 
@@ -34,15 +34,21 @@
 <cfset SESSION.GLBankAccountID  = GLBankAccountID>
 <cfset TranAmt 			= REReplace(Amount,   "[^0-9\.]+", "", "ALL")>
 <cfset ContributionID	= UDField1>
+<cfset UserID			= UDField2>
 <cfset Memo    			= "">
 <cfset errMsg			= "">
 
-<CF_XLogCart AccountID="0" Table="Pay" type="I" Value="#ContributionID#"  Desc="Success IP: UserID=#UserID# TranAmt:#DecimalFormat(TranAmt)#">
-<cfif NOT IsNumeric(ContributionID)>
-	<!--- <cfdump var="#FORM#"> --->
-	<CF_XLogCart AccountID="0" Table="Pay" type="I" Value="#ContributionID#"  Desc="Contribution is not valid. #ResponseText#">
+<cfif NOT IsNumeric(ContributionID) OR ContributionID EQ 0>
+	<CF_XLog AccountID="0" Table="Pay" type="E" Value="#ContributionID#"  Desc="Invalid or Missing ContributionID: #ContributionID#">
 	<cf_problem message="Sorry, the contribution is not valid. #ResponseText#  Please contact support.">
 </cfif>
+
+<cfif NOT IsNumeric(UserID) OR UserID EQ 0>
+	<CF_XLog AccountID="0" Table="Pay" type="E" Value="#UserID#"  Desc="Invalid or Missing UserID: #UserID#">
+	<cf_problem message="Sorry, the user is not valid. #ResponseText#  Please contact support.">
+</cfif>
+<CF_XLogCart AccountID="0" Table="Pay" type="I" Value="#ContributionID#"  Desc="Success IP: UserID=#UserID# TranAmt: #DecimalFormat(TranAmt)#">
+
 
 <cfif Valid>
 	<!--------------------------------------------------------------------------------------------
@@ -62,6 +68,7 @@
 		<cfif MemberQ.Recordcount EQ 0>
 			<cf_problem Message="Member Not Found.">
 		</cfif>
+		<CF_XLogCart AccountID="0" Table="Pay" type="A" Value="#UserID#"  Desc="#MemberQ.UserName#">
 
 		<!--------------------------------------------------------------------------------------------
 			Compute OrgYear
@@ -111,8 +118,7 @@
 	</cfif>
 
 <cfelse>
-
-	<CF_XLogCart AccountID="0" Table="Pay" type="I" Value="#ContributionID#"  Desc="UserID=#UserID# Transaction was not valid">
+	<CF_XLogCart AccountID="0" Table="Pay" type="E" Value="#ContributionID#"  Desc="UserID=#UserID# Transaction was not valid">
 
 	<!--------------------------------------------------------------------------------------------
 		Update The Contribution
