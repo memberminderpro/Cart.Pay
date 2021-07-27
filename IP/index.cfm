@@ -3,6 +3,7 @@
 	Return.cfm - CC Return
 	Modifications:
 		07/22/2019 - created
+		07/14/2021 - updated for new API
 
 	TestCard: 4111111111111111
 ----------------------------------------------------------------------------------------------->
@@ -21,20 +22,19 @@
 	<cfparam name="ResponseCode" 		default="000"					type="string">
 	<cfparam name="ResponseText" 		default="" 						type="string">
 	<cfparam name="ReferenceID" 		default="" 						type="string">
-	<cfparam name="TransactionID" 		default="" 						type="string">
 	<cfparam name="AuthCode" 			default="" 						type="string">
 	<cfparam name="PaymentType" 		default="CC" 					type="string">
 	<cfparam name="Valid" 				default="True" 					type="Boolean">
-	<cfparam name="UDField1" 			default=""						type="string">		<!--- ContributionID --->
-	<cfparam name="UDField2" 			default=""						type="string">		<!--- UserID --->
+	<cfparam name="CUSTOMFIELD1" 		default=""						type="string">		<!--- ContributionID --->
+	<cfparam name="CUSTOMFIELD2" 		default=""						type="string">		<!--- UserID --->
 	<cfcatch>contact support</cfcatch>
 </cftry>
 
 <cfset GLBankAccountID = 100>
 <cfset SESSION.GLBankAccountID  = GLBankAccountID>
 <cfset TranAmt 			= REReplace(Amount,   "[^0-9\.]+", "", "ALL")>
-<cfset ContributionID	= UDField1>
-<cfset UserID			= UDField2>
+<cfset ContributionID	= CUSTOMFIELD1>
+<cfset UserID			= CUSTOMFIELD2>
 <cfset Memo    			= "">
 <cfset errMsg			= "">
 
@@ -55,7 +55,7 @@
 		Check for dups (multiple call backs).  Lookup the payment by the approval number and registration ID
 	----------------------------------------------------------------------------------------------->
 	<cfinvoke component="#APPLICATION.DIR#CFC\ContributionDAO" method="CheckDupPymt" returnvariable="fDup">
-		<cfinvokeargument name="TranNo"				Value="#TransactionID#">
+		<cfinvokeargument name="TranNo"				Value="#ContributionID#">		<!--- Was TransactionID --->
 		<cfinvokeargument name="TranAmt"			Value="#TranAmt#">
 	</cfinvoke>
 

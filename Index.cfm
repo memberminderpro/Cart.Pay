@@ -16,6 +16,13 @@
 		Contact Support.</cfcatch>
 </cftry>
 
+<cfset fDebug = TRUE>
+<cfif fDebug>
+	<cfsavecontent variable="PageData">
+	<cfdump var="#Form#">
+	</cfsavecontent>
+	<cffile action="WRITE"  file="#ExpandPath(".")#/return.html"  output="FORM:<BR>#PageData#">
+</cfif>
 <!-------------------------------------------------------------------------------------------------
 	Setup
 ---------------------------------------------------------------------------------------------------->

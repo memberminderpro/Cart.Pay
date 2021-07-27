@@ -5,13 +5,25 @@
 	Modifications:
 		03/15/2020 - Created
 		02/25/2021 - MOdified
+		07/14/2021 - updated for new API
 --------------------------------------------------------------------------------------->
 <cfsetting showdebugoutput="No">
+
+<cfset fDebug = FALSE>
+<cfif fDebug>
+	<cfsavecontent variable="PageData">
+	<cfdump var="#FORM#">
+	</cfsavecontent>
+	<cffile action="WRITE"  file="#ExpandPath(".")#/Token.html"  output="Token:<BR>#PageData#">
+</cfif>
+
+
 <cftry>
+	<cfparam name="FORM.AccountType"			default="CHECKING"			type="string">
 	<cfparam name="FORM.PaymentType"			default="CC"				type="string">
 	<cfparam name="FORM.Notes"					default=""					type="string">
-	<cfparam name="FORM.UDField1"				default="0"					type="string">		<!--- EFTTransactionID Passed Back--->
-	<cfparam name="FORM.UDField2"				default="0"					type="string">		<!--- UserID Passed Back--->
+	<cfparam name="FORM.CUSTOMFIELD1"			default="0"					type="string">		<!--- EFTTransactionID Passed Back--->
+	<cfparam name="FORM.CUSTOMFIELD2"			default="0"					type="string">		<!--- UserID Passed Back--->
 
 	<cfparam name="FORM.CardHolderName"			default=""					type="string">
 	<cfparam name="FORM.CardNumber"				default=""					type="string">		<!--- 12XXXXXXXXXX3456 is returned -- we want last 4 --->
@@ -38,16 +50,23 @@
 <!--------------------------------------------------------------------------------------------
 	Update EFT Transaction Record with Tokenize Results
 ----------------------------------------------------------------------------------------------->
-<cfset EFTRecurringID = FORM.UDField1>
+<cfset EFTRecurringID = FORM.CUSTOMFIELD1>
 <cfif NOT IsNumeric(EFTRecurringID) OR EFTRecurringID EQ 0>
 	<CF_XLog AccountID="0" Table="Pay" type="E" Value="#EFTRecurringID#"  Desc="Invalid or Missing EFTRecurringID: #EFTRecurringID#">
 	<cf_problem message="Sorry, the EFT ID is not valid. #ResponseText#  Please contact support.">
 </cfif>
 
-<cfset UserID = FORM.UDField2>
+<cfset UserID = FORM.CUSTOMFIELD2>
 <cfif NOT IsNumeric(UserID) OR UserID EQ 0>
 	<CF_XLog AccountID="0" Table="Pay" type="E" Value="#UserID#"  Desc="Invalid or Missing UserID: #UserID#">
 	<cf_problem message="Sorry, the user is not valid. #ResponseText#  Please contact support.">
+</cfif>
+
+<cfif NOT IsNumeric(FORM.CardExpiryMonth)>
+	<cfset FORM.CardExpiryMonth = 0>
+</cfif>
+<cfif NOT IsNumeric(FORM.CardExpiryYear)>
+	<cfset FORM.CardExpiryYear = 0>
 </cfif>
 
 <cfif Valid>
@@ -60,7 +79,6 @@
 	<cfset EFTRecurringObj = createObject("component", "CFC\EFTRecurring").init( EFTRecurringID="#EFTRecurringID#" ) />
 	<cfinvoke component="\CFC\EFTRecurringDAO" method="Read" EFTRecurring="#EFTRecurringObj#" returnvariable="EFTRecurring">
 
-
 	<!--- Update the EFTRecurring with changes from the FORM --->
 	<cfinvoke component="\CFC\EFTRecurring" method="init" ArgumentCollection="#EFTRecurring#"  returnvariable="EFTRecurringObj">
 		<cfinvokeargument name="NameOnAccount"			Value="#Form.CardHolderName#">		<!--- Update the Name on Account, Might be different from Member Name --->
@@ -69,6 +87,7 @@
 		<cfinvokeargument name="CardExpiryMonth"		Value="#Form.CardExpiryMonth#">
 		<cfinvokeargument name="CardExpiryYear"			Value="#Form.CardExpiryYear#">
 
+		<cfinvokeargument name="AccountType"			Value="#Form.AccountType#">
 		<cfinvokeargument name="AuthCode"				Value="#Form.AuthCode#">
 		<cfinvokeargument name="Token"					Value="#Form.CardToken#">
 		<cfinvokeargument name="ResponseText"			Value="#Form.ResponseText#">

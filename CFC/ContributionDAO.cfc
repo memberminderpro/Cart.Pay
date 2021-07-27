@@ -1010,8 +1010,8 @@ FROM            dbo.tblContribution INNER JOIN
 		04/28/14 - Created
 ---------------------------------------------------------------------------------------------------------------------->
 	<cffunction name="CheckDupPymt" access="public" output="true" returntype="Boolean" DisplayName="Check for Duplicate Pymt">
-		<cfargument Name="TranNo" 				Type="String"  	Required="No" 	Hint="TranNo" 					Default="">
-		<cfargument Name="TranAmt"      		Type="String"  	Required="No" 	Hint="AmtPaid" 					Default="">
+		<cfargument Name="ContributionID" 		Type="String"  	Required="No" 	Hint="TranNo" 					Default="">
+		<cfargument Name="TranAmt"				Type="String"  	Required="No" 	Hint="AmtPaid" 					Default="">
 
 		<cfset var qCheckDupPymt = "" />
 
@@ -1023,12 +1023,12 @@ FROM            dbo.tblContribution INNER JOIN
 				tblContribution.TranAmt
 			FROM		tblContribution
 			WHERE 		1 = 1
-			AND			tblContribution.TranNo 		= <CFQUERYPARAM Value="#ARGUMENTS.TranNo#" 			CFSQLTYPE="CF_SQL_VARCHAR">
-			AND			tblContribution.TranAmt 	= <CFQUERYPARAM Value="#ARGUMENTS.TranAmt#" 		CFSQLTYPE="CF_SQL_VARCHAR">
+			AND			tblContribution.ContributionID 		= <CFQUERYPARAM Value="#ARGUMENTS.ContributionID#" 	CFSQLTYPE="CF_SQL_VARCHAR">
+			AND			tblContribution.TranAmt 			= <CFQUERYPARAM Value="#ARGUMENTS.TranAmt#" 		CFSQLTYPE="CF_SQL_VARCHAR">
 		</cfquery>
 
 		<cfif qCheckDupPymt.recordcount GT 0>
-			<CF_XLogCart Table="tblContribution" type="A" Value="#qCheckDupPymt.ContributionID#" Desc="Dup Registration Payment [#qCheckDupPymt.UserName#] detected, AmtPaid=#DecimalFormat(ARGUMENTS.TranAmt)#, TranNo=#ARGUMENTS.TranNo#">
+			<CF_XLogCart Table="tblContribution" type="A" Value="#qCheckDupPymt.ContributionID#" Desc="Dup Registration Payment [#qCheckDupPymt.UserName#] detected, AmtPaid=#DecimalFormat(ARGUMENTS.TranAmt)#, TranNo=#ARGUMENTS.ContributionID#">
 			<cfreturn TRUE>
 		</cfif>
 		<cfreturn FALSE>
