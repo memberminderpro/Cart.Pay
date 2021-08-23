@@ -16,7 +16,7 @@
 		Contact Support.</cfcatch>
 </cftry>
 
-<cfset fDebug = TRUE>
+<cfset fDebug = FALSE>
 <cfif fDebug>
 	<cfsavecontent variable="PageData">
 	<cfdump var="#Form#">

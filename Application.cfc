@@ -38,7 +38,7 @@
 		<cfset APPLICATION.System		 	= "Cart">
 		<cfset APPLICATION.fromDoNotReply 	= "DoNotReply@MyCartFund.org">
 		<cfset APPLICATION.fromSupport	 	= "support@MyCartFund.org">
-		<cfset APPLICATION.fromEFT			= "pay@MyCartFunc.org">
+		<cfset APPLICATION.fromEFT			= "pay@MyCartFund.org">
 		<cfset APPLICATION.Public			= TRUE>
 		<cfset APPLICATION.currentPath 		= getCurrentTemplatePath()>
 
