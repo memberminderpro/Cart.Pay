@@ -35,7 +35,7 @@
 		<cfset APPLICATION.LastMonitor 		= "">
 		<cfset APPLICATION.MaxOnlineReboot	= 0>
 
-		<cfset APPLICATION.System		 	= "Cart">
+		<cfset APPLICATION.System		 	= "MyCartFund">
 		<cfset APPLICATION.fromDoNotReply 	= "DoNotReply@MyCartFund.org">
 		<cfset APPLICATION.fromSupport	 	= "support@MyCartFund.org">
 		<cfset APPLICATION.fromEFT			= "pay@MyCartFund.org">
