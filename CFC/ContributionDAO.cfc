@@ -100,6 +100,7 @@
 				tblContribution.TranAmt,
 				tblContribution.ConvFee,
 				tblContribution.TranNo,
+				tblContribution.ContribType,
 				tblContribution.TranType,
 				tblContribution.Notes,
 				tblContribution.bitSent,
@@ -632,15 +633,6 @@ FROM            dbo.tblContribution INNER JOIN
 			WHERE	1 = 1
 			AND		ContributionID 	= <cfqueryparam value="#ARGUMENTS.Contribution.getContributionID()#" CFSQLType="cf_sql_integer" />
 
-<!---
-			<cfif ContributionID GT 0>
-			<cfelse>
-				AND		AccountID 	= <cfqueryparam value="#ARGUMENTS.Contribution.getAccountID()#" CFSQLType="cf_sql_integer" />
-				AND		ClubID 		= <cfqueryparam value="#ARGUMENTS.Contribution.getClubID()#" 	CFSQLType="cf_sql_integer" />
-				AND		UserID 		= 0
-				AND		OrgYear		= <cfqueryparam value="#ARGUMENTS.Contribution.getOrgYear()#" 	CFSQLType="cf_sql_varchar" />
-			</cfif>
- --->
 		</cfquery>
 		<cfif qExists.idexists>
 			<cfreturn TRUE />
@@ -680,7 +672,9 @@ FROM            dbo.tblContribution INNER JOIN
 		<cfinvokeargument name="OrgYear"		Value="#OrgYear#">
 		<cfinvokeargument name="Amount"		Value="#Amount#">
 		<cfinvokeargument name="TranAmt"		Value="#TranAmt#">
+		<cfinvokeargument name="ConvFee"		Value="#FORM.ConvFee#">
 		<cfinvokeargument name="TranNo"		Value="#TranNo#">
+		<cfinvokeargument name="ContribType"		Value="#FORM.ContribType#">
 		<cfinvokeargument name="TranType"		Value="#TranType#">
 		<cfinvokeargument name="Notes"		Value="#Notes#">
 		<cfinvokeargument name="hm"		Value="#hm#">
@@ -691,7 +685,7 @@ FROM            dbo.tblContribution INNER JOIN
 ---------------------------------------------------------------------------------------------------------------------->
 	<cffunction name="InsertRec" access="public" output="false" returntype="numeric" DisplayName="InsertRec Contribution">
 		<cfargument name="AccountID"				Type="numeric"		Required="No"		Default="#SESSION.AccountID#" />
-		<cfargument name="ClubID"					Type="numeric"		Required="No"		Default="#SESSION.ClubID#" />
+		<cfargument name="ClubID"					Type="numeric"		Required="No"		Default="0" />
 		<cfargument name="UserID"					Type="numeric"		Required="No"		Default="0" />
 		<cfargument name="UserName"					Type="string"		Required="Yes"		Default="" />
 		<cfargument name="OrgYear"					Type="string"		Required="No"		Default="" />
@@ -699,6 +693,7 @@ FROM            dbo.tblContribution INNER JOIN
 		<cfargument name="TranAmt"					Type="numeric"		Required="No"		Default="0.00" />
 		<cfargument name="ConvFee"					Type="numeric"		Required="No"		Default="0.00" />
 		<cfargument name="TranNo"					Type="string"		Required="Yes"		Default="" />
+		<cfargument name="ContribType"				Type="string"		Required="Yes"		Default="" />
 		<cfargument name="TranType"					Type="string"		Required="Yes"		Default="" />
 		<cfargument name="Notes"					Type="string"		Required="Yes"		Default="" />
 		<cfargument name="bitSent"					Type="boolean"		Required="No"		Default="0" />
@@ -723,6 +718,7 @@ FROM            dbo.tblContribution INNER JOIN
 					tblContribution.TranAmt,
 					tblContribution.ConvFee,
 					tblContribution.TranNo,
+					tblContribution.ContribType,
 					tblContribution.TranType,
 					tblContribution.Notes,
 					tblContribution.bitSent,
@@ -743,6 +739,7 @@ FROM            dbo.tblContribution INNER JOIN
 					<cfqueryparam value="#ARGUMENTS.TranAmt#"					CFSQLType="CF_SQL_MONEY" />,
 					<cfqueryparam value="#ARGUMENTS.ConvFee#"					CFSQLType="CF_SQL_MONEY" />,
 					<cfqueryparam value="#Left(ARGUMENTS.TranNo,32)#"					CFSQLType="CF_SQL_VARCHAR" 			null="#not len(ARGUMENTS.TranNo)#" />,
+					<cfqueryparam value="#Left(ARGUMENTS.ContribType,1)#"				CFSQLType="CF_SQL_CHAR" 			null="#not len(ARGUMENTS.ContribType)#" />,
 					<cfqueryparam value="#Left(ARGUMENTS.TranType,2)#"					CFSQLType="CF_SQL_CHAR" 			null="#not len(ARGUMENTS.TranType)#" />,
 					<cfqueryparam value="#Left(ARGUMENTS.Notes,255)#"					CFSQLType="CF_SQL_VARCHAR" 			null="#not len(ARGUMENTS.Notes)#" />,
 					<cfqueryparam value="#ARGUMENTS.bitSent#"					CFSQLType="CF_SQL_BIT" />,
@@ -767,7 +764,7 @@ FROM            dbo.tblContribution INNER JOIN
 <!--- ----------------------------------------------------------------------------------------------------------------
 	Create -  Contribution
 	Modifications
-		4/20/2020 - created
+		9/4/2021 - created
 ---------------------------------------------------------------------------------------------------------------------->
 	<cffunction name="Create" access="public" output="false" returntype="numeric" DisplayName="Create Contribution">
 		<cfargument name="Contribution"			Type="Contribution"	required="Yes" />
@@ -789,6 +786,7 @@ FROM            dbo.tblContribution INNER JOIN
 					tblContribution.TranAmt,
 					tblContribution.ConvFee,
 					tblContribution.TranNo,
+					tblContribution.ContribType,
 					tblContribution.TranType,
 					tblContribution.Notes,
 					tblContribution.bitSent,
@@ -809,6 +807,7 @@ FROM            dbo.tblContribution INNER JOIN
 					<cfqueryparam value="#ARGUMENTS.Contribution.getTranAmt()#"						CFSQLType="CF_SQL_MONEY" />,
 					<cfqueryparam value="#ARGUMENTS.Contribution.getConvFee()#"						CFSQLType="CF_SQL_MONEY" />,
 					<cfqueryparam value="#Left(ARGUMENTS.Contribution.getTranNo(),32)#"					CFSQLType="CF_SQL_VARCHAR"		null="#not len(ARGUMENTS.Contribution.getTranNo())#" />,
+					<cfqueryparam value="#Left(ARGUMENTS.Contribution.getContribType(),1)#"			CFSQLType="CF_SQL_CHAR"		null="#not len(ARGUMENTS.Contribution.getContribType())#" />,
 					<cfqueryparam value="#Left(ARGUMENTS.Contribution.getTranType(),2)#"				CFSQLType="CF_SQL_CHAR"		null="#not len(ARGUMENTS.Contribution.getTranType())#" />,
 					<cfqueryparam value="#Left(ARGUMENTS.Contribution.getNotes(),255)#"					CFSQLType="CF_SQL_VARCHAR"		null="#not len(ARGUMENTS.Contribution.getNotes())#" />,
 					<cfqueryparam value="#ARGUMENTS.Contribution.getbitSent()#"						CFSQLType="CF_SQL_BIT" />,
@@ -840,6 +839,7 @@ FROM            dbo.tblContribution INNER JOIN
 		<cfargument name="OnErrorContinue"		Type="String"			required="No"	Default="N" />
 
 		<cfset var qUpdate = "" />
+		<cfset var ContributionID = ARGUMENTS.Contribution.getContributionID()>
 
 		<cftry>
 			<cfquery name="qUpdate" datasource="#VARIABLES.dsn#">
@@ -854,6 +854,7 @@ FROM            dbo.tblContribution INNER JOIN
 					TranAmt					= <cfqueryparam value="#ARGUMENTS.Contribution.getTranAmt()#"				CFSQLType="CF_SQL_MONEY" />,
 					ConvFee					= <cfqueryparam value="#ARGUMENTS.Contribution.getConvFee()#"				CFSQLType="CF_SQL_MONEY" />,
 					TranNo				= <cfqueryparam value="#Left(ARGUMENTS.Contribution.getTranNo(),32)#"			CFSQLType="CF_SQL_VARCHAR" 			null="#not len(ARGUMENTS.Contribution.getTranNo())#" />,
+					ContribType				= <cfqueryparam value="#Left(ARGUMENTS.Contribution.getContribType(),1)#"				CFSQLType="CF_SQL_CHAR" 			null="#not len(ARGUMENTS.Contribution.getContribType())#" />,
 					TranType				= <cfqueryparam value="#Left(ARGUMENTS.Contribution.getTranType(),2)#"		CFSQLType="CF_SQL_CHAR" 			null="#not len(ARGUMENTS.Contribution.getTranType())#" />,
 					Notes					= <cfqueryparam value="#Left(ARGUMENTS.Contribution.getNotes(),255)#"		CFSQLType="CF_SQL_VARCHAR" 			null="#not len(ARGUMENTS.Contribution.getNotes())#" />,
 					bitSent					= <cfqueryparam value="#ARGUMENTS.Contribution.getbitSent()#"				CFSQLType="CF_SQL_BIT" />,
@@ -865,7 +866,7 @@ FROM            dbo.tblContribution INNER JOIN
 				WHERE	1 = 1
 				AND		ContributionID	= <cfqueryparam value="#ARGUMENTS.Contribution.getContributionID()#"			CFSQLType="cf_sql_integer" />
 			</cfquery>
-			<CF_XLogCart Table="Contribution" type="U" Value="#ARGUMENTS.Contribution.getContributionID()#" Desc="Contribution #ARGUMENTS.Contribution.getAccountID()# Updated">
+			<CF_XLogCart Table="Contribution" type="U" Value="#ContributionID#" Desc="Contribution #ARGUMENTS.Contribution.getAccountID()# Updated">
 			<cfcatch type="database">
 				<cfif ARGUMENTS.OnErrorContinue EQ "N">
 					<CF_XLogCart Table="Contribution" type="E" Value="0" Desc="Error updating Contribution (#cfcatch.detail#)" >
@@ -873,7 +874,7 @@ FROM            dbo.tblContribution INNER JOIN
 				<cfreturn 0 />
 			</cfcatch>
 		</cftry>
-		<cfreturn ARGUMENTS.Contribution.getContributionID() />
+		<cfreturn ContributionID />
 	</cffunction>
 
 <!--- ----------------------------------------------------------------------------------------------------------------
@@ -916,7 +917,7 @@ FROM            dbo.tblContribution INNER JOIN
 <!--- ----------------------------------------------------------------------------------------------------------------
 	Delete -  Contribution
 	Modifications
-		4/20/2020 - created
+		9/4/2021 - created
 ---------------------------------------------------------------------------------------------------------------------->
 	<cffunction name="Delete" access="public" output="false" returntype="boolean" DisplayName="Delete Contribution">
 		<cfargument name="Contribution"			type="Contribution"	required="Yes" />
@@ -924,14 +925,15 @@ FROM            dbo.tblContribution INNER JOIN
 
 		<cfset var qDelete = "" />
 		<cfset var R       = "" />
+		<cfset var ContributionID = ARGUMENTS.Contribution.getContributionID() />
 
 		<cftry>
 			<cfquery name="qDelete" datasource="#VARIABLES.dsn#" Result="R">
 				DELETE FROM	tblContribution
 				WHERE	1 = 1
-				AND		ContributionID = <cfqueryparam value="#ARGUMENTS.Contribution.getContributionID()#" 		CFSQLType="cf_sql_integer" />
+				AND		ContributionID = <cfqueryparam value="#ContributionID#" 		CFSQLType="cf_sql_integer" />
 			</cfquery>
-			<CF_XLogCart Table="Contribution" type="D" Value="#ARGUMENTS.Contribution.getContributionID()#" Desc="A=#ARGUMENTS.Contribution.getAccountID()# C=#ARGUMENTS.Contribution.getClubID()# U=#ARGUMENTS.Contribution.getUserID()# #ARGUMENTS.Contribution.getUserName()# $=#ARGUMENTS.Contribution.getAmount()# Deleted">
+			<CF_XLogCart Table="Contribution" type="D" Value="#ContributionID#" Desc="A=#ARGUMENTS.Contribution.getAccountID()# C=#ARGUMENTS.Contribution.getClubID()# U=#ARGUMENTS.Contribution.getUserID()# #ARGUMENTS.Contribution.getUserName()# $=#ARGUMENTS.Contribution.getAmount()# Deleted">
 			<cfcatch type="database">
 				<cfif ARGUMENTS.OnErrorContinue EQ "N">
 					<CF_XLogCart Table="Contribution" type="D" Value="0" Desc="Error deleting Contribution (#cfcatch.detail#)" >
