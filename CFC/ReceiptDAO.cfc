@@ -140,18 +140,19 @@ return string;
 		<cfif ContributionQ.Recordcount EQ 0>
 			<cfreturn ReceiptHTML>
 		</cfif>
-		<cfset UserID	= ContributionQ.UserID>			<!--- if > 0 personal donation --->
-		<cfset ClubID	= ContributionQ.ClubID>			<!--- if > 0 Club donation, if > 10000 District Club --->
-		<cfset CreatedBy= ContributionQ.Created_By>		<!--- Person entering donation --->
-		<cfset Amount	= ContributionQ.Amount>
-		<cfset ConvFee	= ContributionQ.ConvFee>
-		<cfset TranAmt	= ContributionQ.TranAmt>
-		<cfset TranNo	= ContributionQ.TranNo>
+		<cfset UserID		= ContributionQ.UserID>			<!--- if > 0 personal donation --->
+		<cfset ClubID		= ContributionQ.ClubID>			<!--- if > 0 Club donation, if > 10000 District Club --->
+		<cfset CreatedBy	= ContributionQ.Created_By>		<!--- Person entering donation --->
+		<cfset Amount		= ContributionQ.Amount>
+		<cfset ConvFee		= ContributionQ.ConvFee>
+		<cfset ContribType	= ContributionQ.ContribType>
+		<cfset TranAmt		= ContributionQ.TranAmt>
+		<cfset TranNo		= ContributionQ.TranNo>
 
-		<cfset HM 		 = ContributionQ.hm>
-		<cfset HMName 	 = ContributionQ.HMName>
-		<cfset HMAddress = ContributionQ.HMAddress>
-		<cfset HMMsg	 = "">
+		<cfset HM 		 	= ContributionQ.hm>
+		<cfset HMName 	 	= ContributionQ.HMName>
+		<cfset HMAddress 	= ContributionQ.HMAddress>
+		<cfset HMMsg	 	= "">
 
 		<!--------------------------------------------------------------------------------------------
 			Build the Honorary/Memorial output string
@@ -192,13 +193,13 @@ return string;
 		<!--------------------------------------------------------------------------------------------
 			Build how this contribution was recorded: Personal, Club or District
 		----------------------------------------------------------------------------------------------->
-		<cfif UserID GT 0>
-			<cfset ContribType = "Personal">
-		<cfelseif ClubID GT 0 AND ClubID LT 100000>
-			<cfset ContribType = "Club">
-		<cfelse>
-			<cfset ContribType = "District">
-		</cfif>
+		<cfswitch expression="#ContribType#">
+			<cfcase value="P">	<cfset ContribType = "Personal">	</cfcase>
+			<cfcase value="C">	<cfset ContribType = "Club">		</cfcase>
+			<cfcase value="D">	<cfset ContribType = "District">	</cfcase>
+			<cfdefaultcase>		<cfset ContribType = "">			</cfdefaultcase>
+		</cfswitch>
+
 		<!--------------------------------------------------------------------------------------------
 			Find Finance Account
 		----------------------------------------------------------------------------------------------->
