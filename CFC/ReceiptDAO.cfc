@@ -196,7 +196,7 @@ return string;
 		<cfswitch expression="#ContribType#">
 			<cfcase value="P">	<cfset ContribType = "Personal">	</cfcase>
 			<cfcase value="C">	<cfset ContribType = "Club">		</cfcase>
-			<cfcase value="D">	<cfset ContribType = "District">	</cfcase>
+			<cfcase value="A">	<cfset ContribType = "District">	</cfcase>
 			<cfdefaultcase>		<cfset ContribType = "">			</cfdefaultcase>
 		</cfswitch>
 
