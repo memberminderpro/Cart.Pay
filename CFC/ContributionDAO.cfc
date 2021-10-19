@@ -469,10 +469,10 @@ FROM            dbo.tblContribution INNER JOIN
 					AND 	tblContribution.OrgYear			= <CFQUERYPARAM Value="#ARGUMENTS.OrgYear#"			CFSQLTYPE="CF_SQL_VARCHAR">
 				</cfif>
 				<cfif IsDate(ARGUMENTS.PeriodStart)>
-					AND 	Convert(date, tblContribution.Created_Tmstmp)	>= #CreateODBCDate(ARGUMENTS.PeriodStart)#
+					AND 	Convert(date, tblContribution.Created_Tmstmp)	>= <cfqueryparam value="#CreateODBCDate(ARGUMENTS.PeriodStart)#" cfsqltype="cf_sql_timestamp">
 				</cfif>
 				<cfif IsDate(ARGUMENTS.PeriodEnd)>
-					AND 	Convert(date, tblContribution.Created_Tmstmp)	<= #CreateODBCDate(ARGUMENTS.PeriodEnd)#
+					AND 	Convert(date, tblContribution.Created_Tmstmp)	<= <cfqueryparam value="#CreateODBCDate(ARGUMENTS.PeriodEnd)#" cfsqltype="cf_sql_timestamp">
 				</cfif>
 				<cfif ARGUMENTS.AccountID GT 0>
 					AND			tblContribution.AccountID 	= <CFQUERYPARAM Value="#ARGUMENTS.AccountID#" 		CFSQLTYPE="CF_SQL_INTEGER">
