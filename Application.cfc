@@ -14,7 +14,13 @@
 
 	<cfset This.sessionManagement		= TRUE>							<!--- Turn on session management. --->
 	<cfset This.clientManagement		= TRUE>							<!--- Turn on client management. --->
-	<cfset This.clientStorage			= "Cart">						<!--- Turn on client storage. --->
+	<cfif IsLocalhost(CGI.REMOTE_HOST)>
+		<cfset This.DSN						= "MyCartFund">					<!--- Name the DSN (If its test, make it state so) --->
+		<cfset This.clientStorage			= "MyCartFund">					<!--- Turn on client storage. --->
+	<cfelse>
+		<cfset This.DSN						= "Cart">						<!--- Name the DSN (If its test, make it state so) --->
+		<cfset This.clientStorage			= "Cart">						<!--- Turn on client storage. --->
+	</cfif>
 	<cfset This.loginstorage			= "SESSION">
 	<cfset This.Sessiontimeout			= "#createtimespan(0,0,15,0)#">
 	<cfset This.applicationtimeout		= "#createtimespan(0,1,0,0)#">
@@ -106,18 +112,18 @@
 		<cfset REQUEST.DSN 	= This.DSN>  		<!--- Need to define this here as session scope has not been established --->
 
 		<cfif IsLocalhost(CGI.REMOTE_HOST)>
-			<cfset SESSION.Domain 		= "http://cart.com/">							<!--- Name the Localhost Domain --->
-			<cfset SESSION.ApplURL 		= "http://cart.com/">
+			<cfset SESSION.Domain 		= "http://pay.cart.com/">							<!--- Name the Localhost Domain --->
+			<cfset SESSION.ApplURL 		= "http://pay.cart.com/">
 		<cfelse>
 			<cfset SESSION.Domain 		= "https://www.MyCartFund.org/">				<!--- Name the Domain (if not Localhost)--->
 			<cfset SESSION.ApplURL 		= "https://www.MyCartFund.org/">
 		</cfif>
 
-		<cfif ListContainsNoCase(QUERY_STRING, "CAST") GT 0 OR
-			ListContainsNoCase(QUERY_STRING, "DECLARE") GT 0 OR
-			ListContainsNoCase(QUERY_STRING, "CONCAT") GT 0 OR
-			ListContainsNoCase(QUERY_STRING, "SELECT") GT 0 OR
-			ListContainsNoCase(QUERY_STRING, "UNION") GT 0 OR
+		<cfif ListContainsNoCase(QUERY_STRING, "CAST ") GT 0 OR
+			ListContainsNoCase(QUERY_STRING, "DECLARE ") GT 0 OR
+			ListContainsNoCase(QUERY_STRING, "CONCAT ") GT 0 OR
+			ListContainsNoCase(QUERY_STRING, "SELECT ") GT 0 OR
+			ListContainsNoCase(QUERY_STRING, "UNION ") GT 0 OR
 			find("<",QUERY_STRING) OR find(">",QUERY_STRING) OR find("%3C",QUERY_STRING) OR find("%3E",QUERY_STRING) OR find("=-1%27",QUERY_STRING)>
 			<cffile action="APPEND" file="D:\HackLog.html" output="#REMOTE_ADDR# #DateFormat(now(),'mm/dd/yyyy')# #TimeFormat(now(),'hh:mm:ss')# Mobile<BR>">
 			<cfabort>

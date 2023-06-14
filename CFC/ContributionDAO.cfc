@@ -66,9 +66,9 @@
 		<cfset var qPick = "" />
 		<cfquery name="qPick" datasource="#VARIABLES.dsn#">
 			SELECT	tblContribution.ContributionID, tblContribution.AccountID
-			FROM	tblContribution.tblContribution
+			FROM	tblContribution
 			WHERE	1 = 1
-				AND			tblContribution.AccountID = <CFQUERYPARAM Value="#ARGUMENTS.AccountID#" CFSQLTYPE="CF_SQL_INTEGER">
+			AND			tblContribution.AccountID = <CFQUERYPARAM Value="#ARGUMENTS.AccountID#" CFSQLTYPE="CF_SQL_INTEGER">
 			<cfswitch expression="#ARGUMENTS.SortBy#">
 				<cfcase value="AccountID">ORDER BY 	tblContribution.AccountID </cfcase>
 			</cfswitch>
@@ -110,8 +110,12 @@
 				tblContribution.Created_By,
 				tblContribution.Created_Tmstmp,
 				tblContribution.Modified_By,
-				tblContribution.Modified_Tmstmp
-				FROM	tblContribution
+				tblContribution.Modified_Tmstmp,
+				
+				tblClub.ClubName
+
+			FROM	tblContribution
+			LEFT OUTER JOIN   dbo.tblClub ON dbo.tblContribution.ClubID = dbo.tblClub.ClubID
 			WHERE 		1 = 1
 			<cfif ARGUMENTS.ContributionID GT 0>
 				AND		tblContribution.ContributionID 	= <CFQUERYPARAM Value="#ARGUMENTS.ContributionID#"	CFSQLTYPE="CF_SQL_INTEGER">

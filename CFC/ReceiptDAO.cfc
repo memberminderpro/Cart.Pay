@@ -56,7 +56,7 @@ return string;
 </cfscript>
 <cfscript>
 
-function xlatePayment(string, Amount, ConvFee, TotalAmt, ContributionID, TranNo)  {
+function xlatePayment(string, Amount, ConvFee, TotalAmt, ContributionID, TranNo, ClubName)  {
 string = ReplaceNoCase(string, "{%Date%}", 				DateFormat(now(),'mmm-dd-yyyy'), "ALL");
 string = ReplaceNoCase(string, "{%Today%}", 			DateFormat(now(),'mmm-dd-yyyy'), "ALL");
 
@@ -65,6 +65,7 @@ string = ReplaceNoCase(string, "{%AccountID%}", 		AccountID, "ALL");
 string = ReplaceNoCase(string, "{%UserID%}", 			UserID, "ALL");
 string = ReplaceNoCase(string, "{%MemberName%}", 		MemberName, "ALL");
 string = ReplaceNoCase(string, "{%UserName%}", 			UserName, "ALL");
+string = ReplaceNoCase(string, "{%ClubName%}", 			ClubName, "ALL");
 
 string = ReplaceNoCase(string, "{%LastName%}", 			LastName, "ALL");
 string = ReplaceNoCase(string, "{%FirstName%}", 		FirstName, "ALL");
@@ -132,6 +133,7 @@ return string;
 
 		<cfset var ReceiptHTML = "">
 		<cfset var SendHMEMail = FALSE>
+		<cfset var ClubName	= "">
 
 		<!--------------------------------------------------------------------------------------------
 			Find the Contribution
@@ -141,7 +143,8 @@ return string;
 			<cfreturn ReceiptHTML>
 		</cfif>
 		<cfset UserID		= ContributionQ.UserID>			<!--- if > 0 personal donation --->
-		<cfset ClubID		= ContributionQ.ClubID>			<!--- if > 0 Club donation, if > 10000 District Club --->
+		<cfset ClubID		= ContributionQ.ClubID>			<!--- if > 0 Club donation --->
+		<cfset ClubName		= ContributionQ.ClubName>			<!--- if > 0 Club donation --->
 		<cfset CreatedBy	= ContributionQ.Created_By>		<!--- Person entering donation --->
 		<cfset Amount		= ContributionQ.Amount>
 		<cfset ConvFee		= ContributionQ.ConvFee>
@@ -194,10 +197,19 @@ return string;
 			Build how this contribution was recorded: Personal, Club or District
 		----------------------------------------------------------------------------------------------->
 		<cfswitch expression="#ContribType#">
-			<cfcase value="P">	<cfset ContribType = "Personal">	</cfcase>
-			<cfcase value="C">	<cfset ContribType = "Club">		</cfcase>
-			<cfcase value="A">	<cfset ContribType = "District">	</cfcase>
-			<cfdefaultcase>		<cfset ContribType = "">			</cfdefaultcase>
+			<cfcase value="P">	
+				<cfset ContribType = "Personal">	
+			</cfcase>
+			<cfcase value="C">	
+				<cfset ContribType = "Club (#ContributionQ.ClubName#)">		
+				<cfset ClubName		= ContributionQ.ClubName>
+			</cfcase>
+			<cfcase value="A">	
+				<cfset ContribType = "District">	
+			</cfcase>
+			<cfdefaultcase>		
+				<cfset ContribType = "">			
+			</cfdefaultcase>
 		</cfswitch>
 
 		<!--------------------------------------------------------------------------------------------
@@ -235,7 +247,7 @@ return string;
 		<cfset xlateText = "Member not found. Contact Support.">
 		<cfoutput query="MemberQ">
 			<cftry>
-				<cfset xlateText = xlatePayment(PaymentTemplate, Amount, ConvFee, TranAmt, ContributionID, TranNo)>
+				<cfset xlateText = xlatePayment(PaymentTemplate, Amount, ConvFee, TranAmt, ContributionID, TranNo, ClubName)>
 				<cfcatch><cfset xlateText = "#cfcatch.message#<br>#cfcatch.detail#"></cfcatch>
 			</cftry>
 		</cfoutput>
@@ -497,7 +509,7 @@ return string;
 		----------------------------------------------------------------------------------------------->
 		<cfif IsValid("EMail", ToEMail)>
 			<cftry>
-				<CF_SendEMail TO="#ToEMail#" FROM="#FromEMail#" FromName="CART Fund" ReplyTo="#ContributionEMail#" CC="#ContributionEMail#" SUBJECT="CART Contribution: #ToName#" MESSAGE="#ReceiptHTML#" BCC="mark@dacdb.com" IsUseAlt="Y" TYPE="HTML">
+				<CF_SendEMail TO="#ToEMail#" FROM="#FromEMail#" FromName="CART Fund" ReplyTo="#ContributionEMail#" CC="#ContributionEMail#" SUBJECT="CART Contribution: #ToName#" MESSAGE="#ReceiptHTML#" BCC="webmaster@dacdb.com" IsUseAlt="Y" TYPE="HTML">
 				<CF_XLogCart  AccountID="0" Table="" type="M" Value="#ToName#"  Desc="CART Contribution EMail Sent To: #ToEMail#">
 				<cfcatch>
 					<CF_XLogCart  AccountID="0" Table="" type="M" Value="#ToName#"  Desc="Could not Send Contribution EMail Sent To: #ToEMail#, #cfcatch.message#">
@@ -512,7 +524,7 @@ return string;
 			</cfloop>
 			<cfif Len(eMail) GT 0>
 				<cftry>
-					<CF_SendEMail TO="#eMail#" FROM="#FromEMail#" FromName="Cart Fund" ReplyTo="#ContributionEMail#" SUBJECT="CART Contribution: #ToName#" MESSAGE="Member EMail Missing:<BR><HR><BR>#xlateText#" BCC="mark@dacdb.com" IsUseAlt="Y" TYPE="HTML">
+					<CF_SendEMail TO="#eMail#" FROM="#FromEMail#" FromName="Cart Fund" ReplyTo="#ContributionEMail#" SUBJECT="CART Contribution: #ToName#" MESSAGE="Member EMail Missing:<BR><HR><BR>#xlateText#" BCC="webmaster@dacdb.com" IsUseAlt="Y" TYPE="HTML">
 					<CF_XLogCart  AccountID="0" Table="" type="M" Value="#ToName#"  Desc="CART Contribution EMail to: #eMail#, To:#ToName#  Mail: #ToEMail# missing or not valid">
 					<cfcatch>
 						<CF_XLogCart  AccountID="0" Table="" type="M" Value="#ToName#"  Desc="Could Not Send Contribution EMail to: #eMail#, To:#ToName#  Mail: #ToEMail# missing or not valid">
@@ -528,7 +540,7 @@ return string;
 		----------------------------------------------------------------------------------------------->
 		<cfif SendHMEMail AND Len(Trim(hmEMail))>
 			<cftry>
-				<CF_SendEMail TO="#hmEMail#" FROM="#FromEMail#" FromName="CART Fund" ReplyTo="#ContributionEMail#" CC="#ContributionEMail#" SUBJECT="CART H/M Contribution: #ToName#" MESSAGE="#ReceiptHTML#" BCC="mark@dacdb.com" IsUseAlt="Y" TYPE="HTML">
+				<CF_SendEMail TO="#hmEMail#" FROM="#FromEMail#" FromName="CART Fund" ReplyTo="#ContributionEMail#" CC="#ContributionEMail#" SUBJECT="CART H/M Contribution: #ToName#" MESSAGE="#ReceiptHTML#" BCC="webmaster@dacdb.com" IsUseAlt="Y" TYPE="HTML">
 				<CF_XLogCart  AccountID="0" Table="" type="M" Value="#ToName#"  Desc="CART H/M Contribution EMail Sent To: #hmEMail#">
 				<cfcatch>
 					<CF_XLogCart  AccountID="0" Table="" type="M" Value="#ToName#"  Desc="Could not SendH/M Contribution EMail Sent To: #hmEMail#, #cfcatch.message#">

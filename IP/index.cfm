@@ -34,6 +34,7 @@
 <cfset SESSION.GLBankAccountID  = GLBankAccountID>
 <cfset TranAmt 			= REReplace(Amount,   "[^0-9\.]+", "", "ALL")>
 <cfset ContributionID	= CUSTOMFIELD1>
+<cfset TransactionID	= ReferenceID>
 <cfset UserID			= CUSTOMFIELD2>
 <cfset Memo    			= "">
 <cfset errMsg			= "">
@@ -48,7 +49,6 @@
 	<cf_problem message="Sorry, the user is not valid. #ResponseText#  Please contact support.">
 </cfif>
 <CF_XLogCart AccountID="0" Table="Pay" type="I" Value="#ContributionID#"  Desc="Success IP: UserID=#UserID# TranAmt: #DecimalFormat(TranAmt)#">
-
 
 <cfif Valid>
 	<!--------------------------------------------------------------------------------------------
