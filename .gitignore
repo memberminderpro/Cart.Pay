@@ -1,0 +1,41 @@
+# ColdFusion / IDE
+.project
+.settings/
+.classpath
+*.cfml.cfc
+*.cftrace
+
+# ColdFusion Builder / Eclipse
+.metadata/
+RemoteSystemsTempFiles/
+
+# Adobe ColdFusion server files
+WEB-INF/
+cfclasses/
+*.class
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.sw?
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Temp / upload staging
+tmp/
+temp/
+Uploads/
+
+# Environment / secrets
+.env
+.env.local
+Application_local.cfc
