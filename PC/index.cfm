@@ -219,15 +219,9 @@
 					<cfset EFTStartDate = DateFormat(DateAdd("m", 1, Now()), "yyyy-mm-dd")>
 				</cfif>
 
-				<cfinvoke component="\CFC\EFTRecurringDAO" method="Pick" returnvariable="qExistingRecurring">
-					<cfinvokeargument name="GLBankAccountID"	Value="#GLBankAccountID#">
-					<cfinvokeargument name="UserID"				Value="#UserID#">
-				</cfinvoke>
-				<cfset ExistingEFTRID = (qExistingRecurring.recordcount GT 0 ? qExistingRecurring.EFTRecurringID : 0)>
-
-				<cfset EFTRecurringObj = createObject("component", "\CFC\EFTRecurring").init(EFTRecurringID="#ExistingEFTRID#")>
-				<cfinvoke component="\CFC\EFTRecurringDAO" method="Read" EFTRecurring="#EFTRecurringObj#" returnvariable="EFTRecurringData">
-				<cfinvoke component="\CFC\EFTRecurring" method="init" ArgumentCollection="#EFTRecurringData#" returnvariable="EFTRecurringObj">
+				<!--- Always create a new recurring record; DeleteLogicalByUserID below deactivates any prior ones --->
+				<cfset EFTRecurringObj = createObject("component", "\CFC\EFTRecurring").init(EFTRecurringID="0")>
+				<cfinvoke component="\CFC\EFTRecurring" method="init" EFTRecurringID="0" returnvariable="EFTRecurringObj">
 					<cfinvokeargument name="UserID"				Value="#UserID#">
 					<cfinvokeargument name="AccountID"			Value="#MemberQ.AccountID#">
 					<cfinvokeargument name="ClubID"				Value="#MemberQ.ClubID#">
@@ -247,10 +241,11 @@
 					<cfinvokeargument name="CardBrand"			Value="#payment_method_brand#">
 					<cfinvokeargument name="dFlag"				Value="N">
 					<cfinvokeargument name="PymtGateway"		Value="PC">
+					<cfinvokeargument name="Created_by"			Value="0">
 					<cfinvokeargument name="Modified_by"		Value="#UserID#">
 					<cfinvokeargument name="Modified_Tmstmp"	Value="#now()#">
 				</cfinvoke>
-				<cfinvoke component="\CFC\EFTRecurringDAO" method="Save" EFTRecurring="#EFTRecurringObj#" returnvariable="NewEFTRecurringID">
+				<cfinvoke component="\CFC\EFTRecurringDAO" method="Create" EFTRecurring="#EFTRecurringObj#" returnvariable="NewEFTRecurringID">
 
 				<cfif NewEFTRecurringID GT 0>
 					<CF_XLogCart AccountID="0" Table="EFTRecurring" type="A" Value="#NewEFTRecurringID#" Desc="PC Recurring created/updated: UserID=#UserID#, Amount=#DecimalFormat(RecurringAmount)#, Period=#RecurringPeriod#, Start=#EFTStartDate#">
