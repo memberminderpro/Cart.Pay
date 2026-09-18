@@ -14,7 +14,7 @@
 	<cfsavecontent variable="PageData">
 	<cfdump var="#FORM#">
 	</cfsavecontent>
-	<cffile action="WRITE"  file="#ExpandPath(".")#/Return.html"  output="Return:<BR>#PageData#">
+	<cffile action="WRITE"  file="#ExpandPath(".")#/Return.txt"  output="Return:<BR>#PageData#">
 </cfif>
 
 <cftry>
@@ -40,12 +40,12 @@
 <cfset errMsg			= "">
 
 <cfif NOT IsNumeric(ContributionID) OR ContributionID EQ 0>
-	<CF_XLog AccountID="0" Table="Pay" type="E" Value="#ContributionID#"  Desc="Invalid or Missing ContributionID: #ContributionID#">
+	<CF_XLogCart AccountID="0" Table="Pay" type="E" Value="#ContributionID#"  Desc="Invalid or Missing ContributionID: #ContributionID#">
 	<cf_problem message="Sorry, the contribution is not valid. #ResponseText#  Please contact support.">
 </cfif>
 
 <cfif NOT IsNumeric(UserID) OR UserID EQ 0>
-	<CF_XLog AccountID="0" Table="Pay" type="E" Value="#UserID#"  Desc="Invalid or Missing UserID: #UserID#">
+	<CF_XLogCart AccountID="0" Table="Pay" type="E" Value="#UserID#"  Desc="Invalid or Missing UserID: #UserID#">
 	<cf_problem message="Sorry, the user is not valid. #ResponseText#  Please contact support.">
 </cfif>
 <CF_XLogCart AccountID="0" Table="Pay" type="I" Value="#ContributionID#"  Desc="Success IP: UserID=#UserID# TranAmt: #DecimalFormat(TranAmt)#">
@@ -92,9 +92,9 @@
 
 			<cfinvokeargument name="ResponseCode"		Value="#ResponseCode#">
 			<cfinvokeargument name="ResponseText"		Value="#ResponseText#">
-			<cfinvokeargument name="AuthCode"			Value="#AuthCode#">
+			<cfinvokeargument name="AuthCode"		Value="#AuthCode#">
 
-			<cfinvokeargument name="SendEMail"			Value="Yes">
+			<cfinvokeargument name="SendEMail"		Value="Yes">
 		</cfinvoke>
 		<cfoutput>#ReceiptHTML#</cfoutput>
 
@@ -144,4 +144,3 @@
 	<cfoutput>#ReceiptHTML#</cfoutput>
 
 </cfif>
-

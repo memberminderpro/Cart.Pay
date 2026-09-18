@@ -68,7 +68,7 @@
 			SELECT	tblContribution.ContributionID, tblContribution.AccountID
 			FROM	tblContribution
 			WHERE	1 = 1
-			AND			tblContribution.AccountID = <CFQUERYPARAM Value="#ARGUMENTS.AccountID#" CFSQLTYPE="CF_SQL_INTEGER">
+			AND	tblContribution.AccountID = <CFQUERYPARAM Value="#ARGUMENTS.AccountID#" CFSQLTYPE="CF_SQL_INTEGER">
 			<cfswitch expression="#ARGUMENTS.SortBy#">
 				<cfcase value="AccountID">ORDER BY 	tblContribution.AccountID </cfcase>
 			</cfswitch>
@@ -102,6 +102,7 @@
 				tblContribution.TranNo,
 				tblContribution.ContribType,
 				tblContribution.TranType,
+				tblContribution.ConvMethod,
 				tblContribution.Notes,
 				tblContribution.bitSent,
 				tblContribution.hm,
@@ -111,7 +112,7 @@
 				tblContribution.Created_Tmstmp,
 				tblContribution.Modified_By,
 				tblContribution.Modified_Tmstmp,
-				
+
 				tblClub.ClubName
 
 			FROM	tblContribution
@@ -899,6 +900,9 @@ FROM            dbo.tblContribution INNER JOIN
 			<cfquery name="qUpdate" datasource="#VARIABLES.dsn#">
 				UPDATE tblContribution
 				SET
+					<cfif ARGUMENTS.TranAmt EQ 0>
+						Amount			= 0,
+					</cfif>
 					TranAmt				= <cfqueryparam value="#ARGUMENTS.TranAmt#"					CFSQLType="CF_SQL_MONEY" />,
 					TranNo				= <cfqueryparam value="#Left(ARGUMENTS.TranNo,32)#"			CFSQLType="CF_SQL_VARCHAR"  />,
 					Notes				= <cfqueryparam value="#Left(ARGUMENTS.Notes,255)#"			CFSQLType="CF_SQL_VARCHAR"  />,

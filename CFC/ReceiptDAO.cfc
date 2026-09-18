@@ -1,14 +1,15 @@
-<!--------------------------------------------------------------------------------------------
-	Receit.cfc
+<!--- -----------------------------------------------------------------------------------------
+	ReceiptDAO.cfc
 
-	* $Revision: $
-	* $Date: 10/31/2019 $
----------------------------------------------------------------------------------------------->
+	Modifications
+		10/31/2019 - created
+		04/10/2024 - (TKIRBY) modified email subject to differentiate from original notification (see tickets 37821,37904)
+------------------------------------------------------------------------------------------ --->
 <cfcomponent displayname="Receipt" output="true">
 
-<!--------------------------------------------------------------------------------------------
+<!--- -----------------------------------------------------------------------------------------
 	Internal Tranlate Function
------------------------------------------------------------------------------------------------>
+------------------------------------------------------------------------------------------ --->
 <cfscript>
 /*
  * function - XlateToStateCode(string) -- state name to statecode
@@ -117,9 +118,9 @@ string = ReplaceNoCase(string, "{%TotalAmt%}", 			DollarFormat(TotalAmt), "ALL")
 return string;
 }
 </cfscript>
-	<!--------------------------------------------------------------------------------------------
+	<!--- -----------------------------------------------------------------------------------------
 		Receipt - SUCCESS Generate and Return Receipt HTML
-	----------------------------------------------------------------------------------------------->
+	------------------------------------------------------------------------------------------ --->
 
 	<cffunction name="Success" access="public" returntype="string" output="true">
 		<cfargument NAME="GLBankAccountID" 		type="Numeric"	Required="Yes"		Default="#SESSION.GLBankAccountID#">
@@ -130,15 +131,17 @@ return string;
 		<cfargument NAME="AuthCode" 			type="String"	Required="Yes"		Default="">
 
 		<cfargument NAME="SendEMail"			type="String"	Required="No"		Default="Yes">
+		<cfargument NAME="TranAmt"			type="String"	Required="No"		Default="0">	<!--- Override DB value when IPN hasn't posted yet (race condition on GET redirect) --->
 
 		<cfset var ReceiptHTML = "">
 		<cfset var SendHMEMail = FALSE>
 		<cfset var ClubName	= "">
 
-		<!--------------------------------------------------------------------------------------------
+		<!--- -----------------------------------------------------------------------------------------
 			Find the Contribution
-		----------------------------------------------------------------------------------------------->
+		------------------------------------------------------------------------------------------ --->
 		<cfinvoke component="\CFC\ContributionDAO" method="Lookup" ContributionID="#ContributionID#" returnvariable="ContributionQ">
+
 		<cfif ContributionQ.Recordcount EQ 0>
 			<cfreturn ReceiptHTML>
 		</cfif>
@@ -151,15 +154,23 @@ return string;
 		<cfset ContribType	= ContributionQ.ContribType>
 		<cfset TranAmt		= ContributionQ.TranAmt>
 		<cfset TranNo		= ContributionQ.TranNo>
+		<!--- Fall back to Amount when TranAmt is still 0 (GET redirect arrives before IPN POST records it) --->
+		<cfif Val(TranAmt) EQ 0>
+			<cfif Val(ARGUMENTS.TranAmt) GT 0>
+				<cfset TranAmt = ARGUMENTS.TranAmt>
+			<cfelseif Val(Amount) GT 0>
+				<cfset TranAmt = Amount>
+			</cfif>
+		</cfif>
 
 		<cfset HM 		 	= ContributionQ.hm>
 		<cfset HMName 	 	= ContributionQ.HMName>
 		<cfset HMAddress 	= ContributionQ.HMAddress>
 		<cfset HMMsg	 	= "">
 
-		<!--------------------------------------------------------------------------------------------
+		<!--- -----------------------------------------------------------------------------------------
 			Build the Honorary/Memorial output string
-		----------------------------------------------------------------------------------------------->
+		------------------------------------------------------------------------------------------ --->
 		<cfif Len(Trim(hm)) GT 0 AND Len(Trim(HMName)) GT 0>
 			<cfset SendHMEMail = TRUE>
 			<CF_XLogCart  AccountID="0" Table="" type="U" Value="#CreatedBy#"  Desc="UserID=#UserID#, Hm=#hm#, Name=#hmname#, Addr=#HMAddress#">
@@ -182,10 +193,9 @@ return string;
 			<CF_XLogCart  AccountID="0" Table="" type="U" Value="#CreatedBy#"  Desc="UserID=#UserID#, Hm=#hm#, Name=#hmname# Not found.">
 		</cfif>
 		<CF_XLogCart  AccountID="0" Table="" type="U" Value="#CreatedBy#"  Desc="Hm=#hm#, Name=#hmname#, Addr=#HMAddress#">
-
-		<!--------------------------------------------------------------------------------------------
+		<!--- -----------------------------------------------------------------------------------------
 			Find Member - Use the Created_By value since this could be a club of district contribution
-		----------------------------------------------------------------------------------------------->
+		------------------------------------------------------------------------------------------ --->
 		<cfif UserID GT 0>
 			<cfinvoke component="\CFC\UserDAO" method="View" UserID="#UserID#"  returnvariable="MemberQ">
 		<cfelse>
@@ -193,29 +203,30 @@ return string;
 		</cfif>
 		<CF_XLogCart  AccountID="0" Table="" type="U" Value="#ContributionID#"  Desc="Success Receipt, Member=#MemberQ.UserName# (#UserID#), $=#DecimalFormat(TranAmt)#">
 
-		<!--------------------------------------------------------------------------------------------
+
+		<!--- -----------------------------------------------------------------------------------------
 			Build how this contribution was recorded: Personal, Club or District
-		----------------------------------------------------------------------------------------------->
+		------------------------------------------------------------------------------------------ --->
 		<cfswitch expression="#ContribType#">
-			<cfcase value="P">	
-				<cfset ContribType = "Personal">	
+			<cfcase value="P">
+				<cfset ContribType = "Personal">
 			</cfcase>
-			<cfcase value="C">	
-				<cfset ContribType = "Club (#ContributionQ.ClubName#)">		
+			<cfcase value="C">
+				<cfset ContribType = "Club (#ContributionQ.ClubName#)">
 				<cfset ClubName		= ContributionQ.ClubName>
 			</cfcase>
-			<cfcase value="A">	
-				<cfset ContribType = "District">	
+			<cfcase value="A">
+				<cfset ContribType = "District">
 			</cfcase>
-			<cfdefaultcase>		
-				<cfset ContribType = "">			
+			<cfdefaultcase>
+				<cfset ContribType = "">
 			</cfdefaultcase>
 		</cfswitch>
 
-		<!--------------------------------------------------------------------------------------------
+		<!--- -----------------------------------------------------------------------------------------
 			Find Finance Account
 		----------------------------------------------------------------------------------------------->
-		<cfinvoke component="\CFC\GLBankAccountDAO" method="Lookup" GLBankAccountID="#GLBankAccountID#"  returnvariable="BankAccountQ">
+		<cfinvoke component="\CFC\GLBankAccountDAO" method="Lookup" GLBankAccountID="#GLBankAccountID#" Override="Y" returnvariable="BankAccountQ">
 		<cfset AccountName 			= BankAccountQ.GLBankAccountName>
 		<cfset IsHandleFee 			= BankAccountQ.IsHandleFee>
 		<cfset HandleFeeFixed 		= BankAccountQ.HandleFeeFixed>
@@ -241,9 +252,10 @@ return string;
 		<cfset BillingFaxNumber 	= BankAccountQ.BillingFaxNumber>
 		<cfset Notifications 		= BankAccountQ.Notifications>
 
-		<!--------------------------------------------------------------------------------------------
+
+		<!--- -----------------------------------------------------------------------------------------
 			Display The Receipt
-		----------------------------------------------------------------------------------------------->
+		------------------------------------------------------------------------------------------ --->
 		<cfset xlateText = "Member not found. Contact Support.">
 		<cfoutput query="MemberQ">
 			<cftry>
@@ -259,19 +271,33 @@ return string;
 			</div>
 		</cfsavecontent>
 
-		<!--------------------------------------------------------------------------------------------
+		<!--- -----------------------------------------------------------------------------------------
 			Display The Receipt
-		----------------------------------------------------------------------------------------------->
+		------------------------------------------------------------------------------------------ --->
+		<!--- TEMP: route all emails to test address for the test user --->
+		<cfset rcptToEMail       = MemberQ.EMail>
+		<cfset rcptNotifications = Notifications>
+		<cfset rcptBillingEmail  = BillingEmail>
+		<cfif UserID EQ 800654030>
+			<cfset rcptToEMail       = "jeff.brauer@memberminderpro.com">
+			<cfset rcptBillingEmail  = "jedobra@yahoo.com">
+			<cfset rcptNotifications = SerializeJSON({
+				"ContributionEMail" : "jeff.brauer@memberminderpro.com",
+				"RecurringEMail"    : "tira.trifect@gmail.com",
+				"hmEMail"           : "jeffreybrauer@hotmail.com"
+			})>
+		</cfif>
+
 		<cfif SendEMail>
-			<cfset rc = SendReceipt(MemberQ.EMail, MemberQ.MemberName, Notifications, BillingContact, ReceiptHTML, SendHMEMail)>
+			<cfset rc = SendReceipt(rcptToEMail, MemberQ.MemberName, rcptNotifications, BillingContact, rcptBillingEmail, ReceiptHTML, SendHMEMail)>
 		</cfif>
 
 		<cfreturn ReceiptHTML>
 	</cffunction>
 
-	<!--------------------------------------------------------------------------------------------
+	<!--- -----------------------------------------------------------------------------------------
 		Receipt - FAILURE Generate error receipt and Return Receipt HTML
-	----------------------------------------------------------------------------------------------->
+	------------------------------------------------------------------------------------------ --->
 	<cffunction name="Failure" access="public" returntype="string" output="true">
 		<cfargument NAME="GLBankAccountID" 		type="Numeric"	Required="Yes"		Default="#SESSION.GLBankAccountID#">
 		<cfargument NAME="ContributionID" 		type="String"	Required="Yes"		Default="0">		<!--- CART ContributionID --->
@@ -290,16 +316,16 @@ return string;
 
 		<cfset TotalAmount   = REReplace(TotalAmount, "[^0-9\.]+", "", "ALL")>
 
-		<!--------------------------------------------------------------------------------------------
+		<!--- -----------------------------------------------------------------------------------------
 			Find Member
-		----------------------------------------------------------------------------------------------->
+		------------------------------------------------------------------------------------------ --->
 		<cfinvoke component="\CFC\UserDAO" method="View" UserID="#UserID#"  returnvariable="MemberQ">
 		<CF_XLogCart  AccountID="0" Table="" type="U" Value="#ContributionID#"  Desc="Failure Receipt, Member=#MemberQ.UserName# (#UserID#), $=#DecimalFormat(TotalAmount)#">
 
-		<!--------------------------------------------------------------------------------------------
+		<!--- -----------------------------------------------------------------------------------------
 			Find Finance Account
 		----------------------------------------------------------------------------------------------->
-		<cfinvoke component="\CFC\GLBankAccountDAO" method="Lookup" GLBankAccountID="#GLBankAccountID#"  returnvariable="BankAccountQ">
+		<cfinvoke component="\CFC\GLBankAccountDAO" method="Lookup" GLBankAccountID="#GLBankAccountID#" Override="Y" returnvariable="BankAccountQ">
 		<cfset AccountName 			= BankAccountQ.GLBankAccountName>
 		<cfset IsHandleFee 			= BankAccountQ.IsHandleFee>
 		<cfset HandleFeeFixed 		= BankAccountQ.HandleFeeFixed>
@@ -325,9 +351,9 @@ return string;
 		<cfset BillingFaxNumber 	= BankAccountQ.BillingFaxNumber>
 		<cfset Notifications 		= BankAccountQ.Notifications>
 
-		<!--------------------------------------------------------------------------------------------
+		<!--- -----------------------------------------------------------------------------------------
 			Payment Failure == Display and Log the Information
-		----------------------------------------------------------------------------------------------->
+		------------------------------------------------------------------------------------------ --->
 		<cfsavecontent variable="ReceiptHTML">
 			<div style="width: 700px; margin: auto;">
 				<div style="position:relative; top:40px; text-align:  left; font-family:Arial;">
@@ -375,19 +401,19 @@ return string;
 			</div>
 		</cfsavecontent>
 
-		<!--------------------------------------------------------------------------------------------
+		<!--- -----------------------------------------------------------------------------------------
 			Display The Receipt
-		----------------------------------------------------------------------------------------------->
+		------------------------------------------------------------------------------------------ --->
 		<cfif SendEMail>
-			<cfset rc = SendReceipt(MemberQ.EMail, MemberQ.MemberName, Notifications, BillingContact, ReceiptHTML, FALSE )>
+			<cfset rc = SendReceipt(MemberQ.EMail, MemberQ.MemberName, Notifications, BillingContact, BillingEmail, ReceiptHTML, FALSE )>
 		</cfif>
 
 		<cfreturn ReceiptHTML>
 	</cffunction>
 
-	<!--------------------------------------------------------------------------------------------
+	<!--- -----------------------------------------------------------------------------------------
 		Scheduled - Scheduled Tranaction Receipt
-	----------------------------------------------------------------------------------------------->
+	------------------------------------------------------------------------------------------ --->
 	<cffunction name="Scheduled" access="public" returntype="string" output="true">
 		<cfargument NAME="UserID" 				type="Numeric"	Required="Yes">
 		<cfargument NAME="TotalAmount"	 		type="Numeric"	Required="Yes">
@@ -401,14 +427,14 @@ return string;
 
 		<cfset TotalAmount   = REReplace(TotalAmount, "[^0-9\.]+", "", "ALL")>
 
-		<!--------------------------------------------------------------------------------------------
+		<!--- -----------------------------------------------------------------------------------------
 			Find Member
-		----------------------------------------------------------------------------------------------->
+		------------------------------------------------------------------------------------------ --->
 		<cfinvoke component="\CFC\UserDAO" method="View" UserID="#ARGUMENTS.UserID#"  returnvariable="MemberQ">
 
-		<!--------------------------------------------------------------------------------------------
+		<!--- -----------------------------------------------------------------------------------------
 			Payment Failure == Display and Log the Information
-		----------------------------------------------------------------------------------------------->
+		------------------------------------------------------------------------------------------ --->
 		<cfsavecontent variable="ReceiptHTML">
 			<div style="width: 700px; margin: auto;">
 				<div style="position:relative; top:40px; text-align: left; font-family:Arial;">
@@ -473,19 +499,20 @@ return string;
 		<cfreturn ReceiptHTML>
 	</cffunction>
 
-	<!--------------------------------------------------------------------------------------------
+	<!--- -----------------------------------------------------------------------------------------
 		SendReceipt - Send Receipt via EMail
 		<cfset rc = SendReceipt(MemberQ.EMail, MemberQ.MemberName, Notifications, BillingContact )>
-	----------------------------------------------------------------------------------------------->
+	------------------------------------------------------------------------------------------ --->
 	<cffunction name="SendReceipt" access="public" returntype="string" output="true">
 		<cfargument NAME="ToEMail"	 		type="String"	Required="Yes">
 		<cfargument NAME="ToName"	 		type="String"	Required="Yes">
 		<cfargument NAME="Notifications"	type="String"	Required="Yes">
 		<cfargument NAME="BillingContact"	type="String"	Required="Yes">
+		<cfargument NAME="BillingEmail"		type="String"	Required="Yes">
 		<cfargument NAME="ReceiptHTML"		type="String"	Required="Yes">
 		<cfargument NAME="SendHMEMail"		type="String"	Required="Yes"		default="none">
 
-		<CF_XLogCart  AccountID="0" Table="" type="U" Value="SendReceipt"  Desc="ToEMail=#ToEMail#, ToName=#ToName#, N=#Notifications#, BC=#BillingContact#">
+		<CF_XLogCart  AccountID="0" Table="" type="U" Value="SendReceipt"  Desc="ToEMail=#ToEMail#, ToName=#ToName#, N=#Notifications#, BC=#BillingContact#, #BillingEmail#">
 
 		<cfif IsJSON(Notifications)>
 			<cfset NoteStruct  		= deserializeJSON(Notifications)>
@@ -501,15 +528,15 @@ return string;
 
 		<cfset FromEMail = GetToken(ContributionEMail, 1, ",")>
 		<cfif Len(Trim(FromEMail))>
-			<cfset FromEMail = "support@dacdb.com">
+			<cfset FromEMail = "mailservice@dacdb.com">
 		</cfif>
 
-		<!--------------------------------------------------------------------------------------------
+		<!--- -----------------------------------------------------------------------------------------
 			EMail The Receipt to the Contributor
-		----------------------------------------------------------------------------------------------->
+		------------------------------------------------------------------------------------------ --->
 		<cfif IsValid("EMail", ToEMail)>
 			<cftry>
-				<CF_SendEMail TO="#ToEMail#" FROM="#FromEMail#" FromName="CART Fund" ReplyTo="#ContributionEMail#" CC="#ContributionEMail#" SUBJECT="CART Contribution: #ToName#" MESSAGE="#ReceiptHTML#" BCC="webmaster@dacdb.com" IsUseAlt="Y" TYPE="HTML">
+				<CF_SendEMail TO="#ToEMail#" FROM="#FromEMail#" FromName="CART Fund" ReplyTo="#ContributionEMail#" CC="#ContributionEMail#" SUBJECT="CART Contribution: #ToName#" MESSAGE="#ReceiptHTML#" BCC="#BillingEmail#" IsUseAlt="Y" TYPE="HTML">
 				<CF_XLogCart  AccountID="0" Table="" type="M" Value="#ToName#"  Desc="CART Contribution EMail Sent To: #ToEMail#">
 				<cfcatch>
 					<CF_XLogCart  AccountID="0" Table="" type="M" Value="#ToName#"  Desc="Could not Send Contribution EMail Sent To: #ToEMail#, #cfcatch.message#">
@@ -524,7 +551,7 @@ return string;
 			</cfloop>
 			<cfif Len(eMail) GT 0>
 				<cftry>
-					<CF_SendEMail TO="#eMail#" FROM="#FromEMail#" FromName="Cart Fund" ReplyTo="#ContributionEMail#" SUBJECT="CART Contribution: #ToName#" MESSAGE="Member EMail Missing:<BR><HR><BR>#xlateText#" BCC="webmaster@dacdb.com" IsUseAlt="Y" TYPE="HTML">
+					<CF_SendEMail TO="#eMail#" FROM="#FromEMail#" FromName="CART Fund" ReplyTo="#ContributionEMail#" SUBJECT="CART Contribution: #ToName#" MESSAGE="Member EMail Missing:<BR><HR><BR>#xlateText#" BCC="#BillingEmail#" IsUseAlt="Y" TYPE="HTML">
 					<CF_XLogCart  AccountID="0" Table="" type="M" Value="#ToName#"  Desc="CART Contribution EMail to: #eMail#, To:#ToName#  Mail: #ToEMail# missing or not valid">
 					<cfcatch>
 						<CF_XLogCart  AccountID="0" Table="" type="M" Value="#ToName#"  Desc="Could Not Send Contribution EMail to: #eMail#, To:#ToName#  Mail: #ToEMail# missing or not valid">
@@ -535,15 +562,15 @@ return string;
 			</cfif>
 		</cfif>
 
-		<!--------------------------------------------------------------------------------------------
+		<!--- -----------------------------------------------------------------------------------------
 			EMail The Honor/Memory EMail  List
-		----------------------------------------------------------------------------------------------->
+		------------------------------------------------------------------------------------------ --->
 		<cfif SendHMEMail AND Len(Trim(hmEMail))>
 			<cftry>
-				<CF_SendEMail TO="#hmEMail#" FROM="#FromEMail#" FromName="CART Fund" ReplyTo="#ContributionEMail#" CC="#ContributionEMail#" SUBJECT="CART H/M Contribution: #ToName#" MESSAGE="#ReceiptHTML#" BCC="webmaster@dacdb.com" IsUseAlt="Y" TYPE="HTML">
-				<CF_XLogCart  AccountID="0" Table="" type="M" Value="#ToName#"  Desc="CART H/M Contribution EMail Sent To: #hmEMail#">
+				<CF_SendEMail TO="#hmEMail#" FROM="#FromEMail#" FromName="CART Fund" ReplyTo="#ContributionEMail#" CC="#ContributionEMail#" SUBJECT="CART H/M Contribution: #ToName#" MESSAGE="#ReceiptHTML#" BCC="webmaster@memberminderpro.com" IsUseAlt="Y" TYPE="HTML">
+				<CF_XLogCart  AccountID="0" Table="" type="M" Value="#hmEMail#"  Desc="CART H/M Contribution EMail (Paid) Sent To: #hmEMail#">
 				<cfcatch>
-					<CF_XLogCart  AccountID="0" Table="" type="M" Value="#ToName#"  Desc="Could not SendH/M Contribution EMail Sent To: #hmEMail#, #cfcatch.message#">
+					<CF_XLogCart  AccountID="0" Table="" type="M" Value="#hmEMail#"  Desc="Could not SendH/M Contribution EMail (Paid) Sent To: #hmEMail#, #cfcatch.message#">
 				</cfcatch>
 			</cftry>
 		</cfif>

@@ -27,7 +27,8 @@
 	Setup
 ---------------------------------------------------------------------------------------------------->
 
-<cfinvoke component="#APPLICATION.DIR#CFC\GLBankAccountDAO" method="Lookup" GLBankAccountID="100"  returnvariable="BankAccountQ">
+<cfset GLBankAccountID = (UserID EQ 800654030 ? 101 : 100)>
+<cfinvoke component="#APPLICATION.DIR#CFC\GLBankAccountDAO" method="Lookup" GLBankAccountID="#GLBankAccountID#" Override="Y" returnvariable="BankAccountQ">
 <cfset AccountName 			= BankAccountQ.GLBankAccountName>
 <cfset AccountID 			= BankAccountQ.AccountID>
 
@@ -50,6 +51,14 @@
 	<cfcase value="IP">		<!--- AuthorizeNET, PayPal, SecurePay, JetPay, eProcessing, Affinity --->
 		<cfif Len(GatewayParms) GT 0>
 			<cfinclude template="IP/index.cfm">
+		<cfelse>
+			<CF_XLogCart AccountID="0" Table="Cart" type="E" Value="#PymtGateway#"  Desc="Payment Gateway params NOT defined">
+			<CF_Problem Message="Sorry, but your payment gateway params [#GatewayParms#] are NOT defined.">
+		</cfif>
+	</cfcase>
+	<cfcase value="PC">		<!--- Paycove --->
+		<cfif Len(GatewayParms) GT 0>
+			<cfinclude template="PC/index.cfm">
 		<cfelse>
 			<CF_XLogCart AccountID="0" Table="Cart" type="E" Value="#PymtGateway#"  Desc="Payment Gateway params NOT defined">
 			<CF_Problem Message="Sorry, but your payment gateway params [#GatewayParms#] are NOT defined.">

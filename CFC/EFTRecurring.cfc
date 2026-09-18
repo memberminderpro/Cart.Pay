@@ -37,6 +37,7 @@
 	<cfproperty name="Created_Tmstmp"			Type="date"	default="" />
 	<cfproperty name="Modified_By"				Type="numeric"	default="" />
 	<cfproperty name="Modified_Tmstmp"			Type="date"		default="" />
+	<cfproperty name="PymtGateway"				Type="string"	default="IP" />
 
 
 	<!---
@@ -78,6 +79,7 @@
 		<cfargument name="Created_Tmstmp"				Type="string"	required="false"	default="#now()#"	/>
 		<cfargument name="Modified_By"					Type="string"	required="false"	default="#SESSION.UserID#"	/>
 		<cfargument name="Modified_Tmstmp"				Type="string"	required="false"	default="#now()#"	/>
+		<cfargument name="PymtGateway"					Type="string"	required="false"	default="IP"	/>
 
 		<!--- run setters --->
 		<cfset setEFTRecurringID(ARGUMENTS.EFTRecurringID) />
@@ -110,6 +112,7 @@
 		<cfset setCreated_Tmstmp(ARGUMENTS.Created_Tmstmp) />
 		<cfset setModified_By(ARGUMENTS.Modified_By) />
 		<cfset setModified_Tmstmp(ARGUMENTS.Modified_Tmstmp) />
+		<cfset setPymtGateway(ARGUMENTS.PymtGateway) />
 
 		<cfreturn this />
 	</cffunction>
@@ -807,6 +810,19 @@
 
 	<cffunction name="getModified_Tmstmp" access="public" returntype="string" output="false">
 		<cfreturn variables.instance.Modified_Tmstmp />
+	</cffunction>
+
+
+	<!--- -------------------------------------------------------------------------------------------------
+	PymtGateway -- Get/Set
+	--------------------------------------------------------------------------------------------------- --->
+	<cffunction name="setPymtGateway" access="public" returntype="void" output="false">
+		<cfargument name="PymtGateway" type="string" required="true" />
+			<cfset variables.instance.PymtGateway = ARGUMENTS.PymtGateway />
+	</cffunction>
+
+	<cffunction name="getPymtGateway" access="public" returntype="string" output="false">
+		<cfreturn variables.instance.PymtGateway />
 	</cffunction>
 
 

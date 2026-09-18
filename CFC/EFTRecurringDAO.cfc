@@ -157,6 +157,7 @@
 		<cfargument Name="Filter"				Type="string"	Required="No"	Hint="Filter Value"			Default="">
 		<cfargument Name="Override"				Type="String"	Required="No"	Hint="Override"				Default="N">
 		<cfargument Name="SortBy"				Type="String"	Required="No"	Hint="SortBy"				Default="GLBankAccountID">
+		<cfargument Name="PymtGateway"			Type="String"	Required="No"	Hint="Filter by PymtGateway"Default="">
 
 		<cfset var qView = "" />
 		<cfquery name="qView" datasource="#VARIABLES.dsn#">
@@ -180,6 +181,9 @@ FROM            dbo.tblEFTRecurring INNER JOIN
 			</cfif>
 			<cfif ARGUMENTS.EFTRecurringID GT 0>
 				AND		tblEFTRecurring.EFTRecurringID 	= <CFQUERYPARAM Value="#ARGUMENTS.EFTRecurringID#"	CFSQLTYPE="CF_SQL_INTEGER">
+			</cfif>
+			<cfif Len(ARGUMENTS.PymtGateway) GT 0>
+				AND		dbo.GLBankAccount.PymtGateway 	= <CFQUERYPARAM Value="#ARGUMENTS.PymtGateway#"		CFSQLTYPE="CF_SQL_VARCHAR">
 			</cfif>
 
 			<cfswitch expression="#ARGUMENTS.SortBy#">
@@ -280,7 +284,8 @@ LEFT OUTER JOIN	dbo.tblUser AS tblUser_2 ON dbo.tblEFTRecurring.Modified_By = tb
 				tblUser_1.UserName AS Created_By,
 				tblEFTRecurring.Created_Tmstmp,
 				tblUser_2.UserName AS Modified_By,
-				tblEFTRecurring.Modified_Tmstmp
+				tblEFTRecurring.Modified_Tmstmp,
+				tblEFTRecurring.PymtGateway
 			FROM	tblEFTRecurring
 			LEFT OUTER JOIN	tblUser AS tblUser_1 ON tblEFTRecurring.Created_By = tblUser_1.UserID
 			LEFT OUTER JOIN tblUser AS tblUser_2 ON tblEFTRecurring.Modified_By = tblUser_2.UserID
@@ -534,6 +539,7 @@ LEFT OUTER JOIN	dbo.tblUser AS tblUser_2 ON dbo.tblEFTRecurring.Modified_By = tb
 					tblEFTRecurring.AuthCode,
 					tblEFTRecurring.ResponseText,
 					tblEFTRecurring.TransactionID,
+					tblEFTRecurring.PymtGateway,
 					tblEFTRecurring.Created_By,
 					tblEFTRecurring.Created_Tmstmp
 					)
@@ -564,6 +570,7 @@ LEFT OUTER JOIN	dbo.tblUser AS tblUser_2 ON dbo.tblEFTRecurring.Modified_By = tb
 					<cfqueryparam value="#Left(ARGUMENTS.EFTRecurring.getAuthCode(),32)#"			CFSQLType="CF_SQL_VARCHAR"		null="#not len(ARGUMENTS.EFTRecurring.getAuthCode())#" />,
 					<cfqueryparam value="#Left(ARGUMENTS.EFTRecurring.getResponseText(),32)#"		CFSQLType="CF_SQL_VARCHAR"		null="#not len(ARGUMENTS.EFTRecurring.getResponseText())#" />,
 					<cfqueryparam value="#Left(ARGUMENTS.EFTRecurring.getTransactionID(),32)#"		CFSQLType="CF_SQL_VARCHAR"		null="#not len(ARGUMENTS.EFTRecurring.getTransactionID())#" />,
+					<cfqueryparam value="#Left(ARGUMENTS.EFTRecurring.getPymtGateway(),10)#"		CFSQLType="CF_SQL_VARCHAR"		null="#not len(ARGUMENTS.EFTRecurring.getPymtGateway())#" />,
 					<cfqueryparam value="#SESSION.UserID#"											CFSQLType="CF_SQL_INTEGER" />,
 					<cfqueryparam value="#Now()#"													CFSQLType="CF_SQL_TIMESTAMP" />
 				)
@@ -620,6 +627,7 @@ LEFT OUTER JOIN	dbo.tblUser AS tblUser_2 ON dbo.tblEFTRecurring.Modified_By = tb
 					AuthCode				= <cfqueryparam value="#Left(ARGUMENTS.EFTRecurring.getAuthCode(),32)#"				CFSQLType="CF_SQL_VARCHAR" 		null="#not len(ARGUMENTS.EFTRecurring.getAuthCode())#" />,
 					ResponseText			= <cfqueryparam value="#Left(ARGUMENTS.EFTRecurring.getResponseText(),32)#"			CFSQLType="CF_SQL_VARCHAR" 		null="#not len(ARGUMENTS.EFTRecurring.getResponseText())#" />,
 					TransactionID			= <cfqueryparam value="#Left(ARGUMENTS.EFTRecurring.getTransactionID(),32)#"		CFSQLType="CF_SQL_VARCHAR" 		null="#not len(ARGUMENTS.EFTRecurring.getTransactionID())#" />,
+					PymtGateway				= <cfqueryparam value="#Left(ARGUMENTS.EFTRecurring.getPymtGateway(),10)#"			CFSQLType="CF_SQL_VARCHAR"		null="#not len(ARGUMENTS.EFTRecurring.getPymtGateway())#" />,
 					Modified_By				= <cfqueryparam value="#SESSION.UserID#" 											CFSQLType="CF_SQL_INTEGER" />,
 					Modified_Tmstmp			= <cfqueryparam value="#Now()#" 													CFSQLType="CF_SQL_TIMESTAMP" />
 				WHERE	1 = 1
@@ -697,6 +705,41 @@ LEFT OUTER JOIN	dbo.tblUser AS tblUser_2 ON dbo.tblEFTRecurring.Modified_By = tb
 				<cfif ARGUMENTS.OnErrorContinue EQ "N">
 					<CF_XLogCart Table="EFTRecurring" type="D" Value="0" Desc="Error deleting logical EFTRecurring (#cfcatch.detail#)" >
 				</cfif>
+				<cfreturn FALSE />
+			</cfcatch>
+		</cftry>
+		<cfreturn TRUE />
+	</cffunction>
+
+<!--- ----------------------------------------------------------------------------------------------------------------
+	DeleteLogicalByUserID - Logically delete all active EFTRecurring records for a UserID+GLBankAccountID,
+	optionally excluding one record (the one just saved).
+---------------------------------------------------------------------------------------------------------------------->
+	<cffunction name="DeleteLogicalByUserID" access="public" output="false" returntype="boolean" DisplayName="DeleteLogical By UserID">
+		<cfargument name="UserID"					Type="numeric"	Required="true" />
+		<cfargument name="GLBankAccountID"			Type="numeric"	Required="true" />
+		<cfargument name="ExcludeEFTRecurringID"	Type="numeric"	Required="No"	Default="0" />
+		<cfargument name="Modified_By"				Type="numeric"	Required="No"	Default="0" />
+
+		<cfset var qUpdate = "" />
+		<cftry>
+			<cfquery name="qUpdate" datasource="#variables.DSN#">
+				UPDATE tblEFTRecurring
+				SET
+					dFlag				= 'Y',
+					Token				= '',
+					Modified_By			= <cfqueryparam value="#ARGUMENTS.Modified_By#"			CFSQLType="CF_SQL_INTEGER" />,
+					Modified_Tmstmp		= <cfqueryparam value="#Now()#"							CFSQLType="CF_SQL_TIMESTAMP" />
+				WHERE	UserID			= <cfqueryparam value="#ARGUMENTS.UserID#"				CFSQLType="CF_SQL_INTEGER" />
+				AND		GLBankAccountID	= <cfqueryparam value="#ARGUMENTS.GLBankAccountID#"		CFSQLType="CF_SQL_INTEGER" />
+				AND		dFlag			= 'N'
+				<cfif ARGUMENTS.ExcludeEFTRecurringID GT 0>
+					AND EFTRecurringID	<> <cfqueryparam value="#ARGUMENTS.ExcludeEFTRecurringID#"	CFSQLType="CF_SQL_INTEGER" />
+				</cfif>
+			</cfquery>
+			<CF_XLogCart Table="EFTRecurring" type="D" Value="#ARGUMENTS.UserID#" Desc="Logically deleted prior recurring records for UserID=#ARGUMENTS.UserID#, GLBankAccountID=#ARGUMENTS.GLBankAccountID#">
+			<cfcatch type="database">
+				<CF_XLogCart Table="EFTRecurring" type="E" Value="#ARGUMENTS.UserID#" Desc="Error in DeleteLogicalByUserID: #cfcatch.detail#">
 				<cfreturn FALSE />
 			</cfcatch>
 		</cftry>
