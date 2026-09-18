@@ -154,9 +154,13 @@ return string;
 		<cfset ContribType	= ContributionQ.ContribType>
 		<cfset TranAmt		= ContributionQ.TranAmt>
 		<cfset TranNo		= ContributionQ.TranNo>
-		<!--- Use caller-supplied TranAmt when DB still shows 0 (GET redirect arrives before IPN POST) --->
-		<cfif Val(ARGUMENTS.TranAmt) GT 0 AND Val(TranAmt) EQ 0>
-			<cfset TranAmt = ARGUMENTS.TranAmt>
+		<!--- Fall back to Amount when TranAmt is still 0 (GET redirect arrives before IPN POST records it) --->
+		<cfif Val(TranAmt) EQ 0>
+			<cfif Val(ARGUMENTS.TranAmt) GT 0>
+				<cfset TranAmt = ARGUMENTS.TranAmt>
+			<cfelseif Val(Amount) GT 0>
+				<cfset TranAmt = Amount>
+			</cfif>
 		</cfif>
 
 		<cfset HM 		 	= ContributionQ.hm>
