@@ -132,6 +132,7 @@ return string;
 
 		<cfargument NAME="SendEMail"			type="String"	Required="No"		Default="Yes">
 		<cfargument NAME="TranAmt"			type="String"	Required="No"		Default="0">	<!--- Override DB value when IPN hasn't posted yet (race condition on GET redirect) --->
+		<cfargument NAME="TestRun"			type="Boolean"	Required="No"		Default="FALSE">	<!--- TRUE: send nothing, return the recipients SendReceipt would use --->
 
 		<cfset var ReceiptHTML = "">
 		<cfset var SendHMEMail = FALSE>
@@ -184,8 +185,8 @@ return string;
 					</cfswitch>
 				</strong>
 				<cfoutput>
-					#HMName#<br />
-					#HMAddress#<BR>
+					#encodeForHTMLAttribute(HMName)#<br />
+					#encodeForHTMLAttribute(HMAddress)#<BR>
 				</cfoutput>
 			</P>
 			</cfsavecontent>
@@ -257,7 +258,7 @@ return string;
 			Display The Receipt
 		------------------------------------------------------------------------------------------ --->
 		<cfset xlateText = "Member not found. Contact Support.">
-		<cfoutput query="MemberQ">
+		<cfoutput query="MemberQ" maxrows="1">
 			<cftry>
 				<cfset xlateText = xlatePayment(PaymentTemplate, Amount, ConvFee, TranAmt, ContributionID, TranNo, ClubName)>
 				<cfcatch><cfset xlateText = "#cfcatch.message#<br>#cfcatch.detail#"></cfcatch>
@@ -288,6 +289,9 @@ return string;
 			})>
 		</cfif>
 
+		<cfif TestRun>
+			<cfreturn SendReceipt(rcptToEMail, MemberQ.MemberName, rcptNotifications, BillingContact, rcptBillingEmail, ReceiptHTML, SendHMEMail, TRUE)>
+		</cfif>
 		<cfif SendEMail>
 			<cfset rc = SendReceipt(rcptToEMail, MemberQ.MemberName, rcptNotifications, BillingContact, rcptBillingEmail, ReceiptHTML, SendHMEMail)>
 		</cfif>
@@ -511,8 +515,13 @@ return string;
 		<cfargument NAME="BillingEmail"		type="String"	Required="Yes">
 		<cfargument NAME="ReceiptHTML"		type="String"	Required="Yes">
 		<cfargument NAME="SendHMEMail"		type="String"	Required="Yes"		default="none">
+		<cfargument NAME="TestRun"			type="Boolean"	Required="No"		default="FALSE">	<!--- TRUE: send nothing, return the recipients --->
+		<!--- 09/17/2026 - (TKIRBY) Removed CC to ContributionEmail on HmEmails per ticket 70970
+			  10/20/2026 - Kept identical in Cart and Cart.Pay; TestRun added for the Cart resend-receipts utility --->
 
-		<CF_XLogCart  AccountID="0" Table="" type="U" Value="SendReceipt"  Desc="ToEMail=#ToEMail#, ToName=#ToName#, N=#Notifications#, BC=#BillingContact#, #BillingEmail#">
+		<cfset var Recipients = "">
+
+		<CF_XLogCart  AccountID="0" Table="" type="U" Value="SendReceipt"  Desc="#TestRun ? 'TEST RUN ' : ''#ToEMail=#ToEMail#, ToName=#ToName#, N=#Notifications#, BC=#BillingContact#, #BillingEmail#">
 
 		<cfif IsJSON(Notifications)>
 			<cfset NoteStruct  		= deserializeJSON(Notifications)>
@@ -535,13 +544,17 @@ return string;
 			EMail The Receipt to the Contributor
 		------------------------------------------------------------------------------------------ --->
 		<cfif IsValid("EMail", ToEMail)>
+			<cfset Recipients = ListAppend(Recipients, "Receipt To: #ToEMail#; CC: #ContributionEMail#; BCC: #BillingEmail#", "|")>
+			<cfif NOT TestRun>
 			<cftry>
 				<CF_SendEMail TO="#ToEMail#" FROM="#FromEMail#" FromName="CART Fund" ReplyTo="#ContributionEMail#" CC="#ContributionEMail#" SUBJECT="CART Contribution: #ToName#" MESSAGE="#ReceiptHTML#" BCC="#BillingEmail#" IsUseAlt="Y" TYPE="HTML">
 				<CF_XLogCart  AccountID="0" Table="" type="M" Value="#ToName#"  Desc="CART Contribution EMail Sent To: #ToEMail#">
 				<cfcatch>
-					<CF_XLogCart  AccountID="0" Table="" type="M" Value="#ToName#"  Desc="Could not Send Contribution EMail Sent To: #ToEMail#, #cfcatch.message#">
+					<CF_XLogCart  AccountID="0" Table="" type="M" Value="#ToName#"  Desc="Could not Send Contribution EMail Sent To: #ToEMail#, #cfcatch.detail#">
+					<cfset Recipients = ListAppend(Recipients, "FAILED: #cfcatch.message#", "|")>
 				</cfcatch>
 			</cftry>
+			</cfif>
 		<cfelse>
 			<cfset eMail = "">
 			<cfloop index="E" list="#ContributionEMail#" delimiters=",">
@@ -550,15 +563,22 @@ return string;
 				</cfif>
 			</cfloop>
 			<cfif Len(eMail) GT 0>
+				<cfset Recipients = ListAppend(Recipients, "Member email missing - notice To: #eMail#; BCC: #BillingEmail#", "|")>
+				<cfif NOT TestRun>
 				<cftry>
 					<CF_SendEMail TO="#eMail#" FROM="#FromEMail#" FromName="CART Fund" ReplyTo="#ContributionEMail#" SUBJECT="CART Contribution: #ToName#" MESSAGE="Member EMail Missing:<BR><HR><BR>#xlateText#" BCC="#BillingEmail#" IsUseAlt="Y" TYPE="HTML">
 					<CF_XLogCart  AccountID="0" Table="" type="M" Value="#ToName#"  Desc="CART Contribution EMail to: #eMail#, To:#ToName#  Mail: #ToEMail# missing or not valid">
 					<cfcatch>
 						<CF_XLogCart  AccountID="0" Table="" type="M" Value="#ToName#"  Desc="Could Not Send Contribution EMail to: #eMail#, To:#ToName#  Mail: #ToEMail# missing or not valid">
+						<cfset Recipients = ListAppend(Recipients, "FAILED: #cfcatch.message#", "|")>
 					</cfcatch>
 				</cftry>
+				</cfif>
 			<cfelse>
-				<CF_XLogCart  AccountID="0" Table="" type="M" Value="#ToName#"  Desc="CART Contribution EMail missing or not valid">
+				<cfset Recipients = ListAppend(Recipients, "No valid member or contribution email - nothing sent", "|")>
+				<cfif NOT TestRun>
+					<CF_XLogCart  AccountID="0" Table="" type="M" Value="#ToName#"  Desc="CART Contribution EMail missing or not valid">
+				</cfif>
 			</cfif>
 		</cfif>
 
@@ -566,16 +586,26 @@ return string;
 			EMail The Honor/Memory EMail  List
 		------------------------------------------------------------------------------------------ --->
 		<cfif SendHMEMail AND Len(Trim(hmEMail))>
+			<cfset Recipients = ListAppend(Recipients, "H/M To: #hmEMail#; BCC: webmaster@memberminderpro.com", "|")>
+			<cfif NOT TestRun>
 			<cftry>
-				<CF_SendEMail TO="#hmEMail#" FROM="#FromEMail#" FromName="CART Fund" ReplyTo="#ContributionEMail#" CC="#ContributionEMail#" SUBJECT="CART H/M Contribution: #ToName#" MESSAGE="#ReceiptHTML#" BCC="webmaster@memberminderpro.com" IsUseAlt="Y" TYPE="HTML">
+				<CF_SendEMail TO="#hmEMail#" FROM="#FromEMail#" FromName="CART Fund" ReplyTo="#ContributionEMail#" SUBJECT="CART H/M Contribution: #ToName#" MESSAGE="#ReceiptHTML#" BCC="webmaster@memberminderpro.com" IsUseAlt="Y" TYPE="HTML">
 				<CF_XLogCart  AccountID="0" Table="" type="M" Value="#hmEMail#"  Desc="CART H/M Contribution EMail (Paid) Sent To: #hmEMail#">
 				<cfcatch>
 					<CF_XLogCart  AccountID="0" Table="" type="M" Value="#hmEMail#"  Desc="Could not SendH/M Contribution EMail (Paid) Sent To: #hmEMail#, #cfcatch.message#">
+					<cfset Recipients = ListAppend(Recipients, "FAILED: #cfcatch.message#", "|")>
 				</cfcatch>
 			</cftry>
+			</cfif>
 		</cfif>
 
+		<cfset variables.LastRecipients = Recipients>		<!--- read with getLastRecipients() after Success() --->
+		<cfif TestRun><cfreturn Recipients></cfif>
 		<cfreturn TRUE>
+	</cffunction>
+
+	<cffunction name="getLastRecipients" access="public" returntype="string" output="false" hint="Recipients (| delimited) of the last SendReceipt on this instance">
+		<cfreturn StructKeyExists(variables, "LastRecipients") ? variables.LastRecipients : "">
 	</cffunction>
 
 </cfcomponent>
